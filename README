@@ -1,0 +1,55 @@
+
+Where to start
+~~~~~~~~~~~~~~
+See the "doc" directory, where you will find a
+"quickstart" guide for the CM2.5 and FLOR models.
+
+
+Summary of directory contents
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bin/
+     -- mkmf script for creating Makefiles
+     -- template files for the mkmf script
+     -- list_paths generates a list of source files using find
+     -- time_stamp.csh used by run script
+
+doc/ 
+     -- quickstart guide
+
+exp/
+     -- model input files for the models, such as:
+           namelists, diagnostics tables, field tables.
+     -- compile script. (uses mkmf)
+     -- list of source code. (used by mkmf)
+     -- run script for running the model.
+
+postprocessing/
+     -- source code for processing model output.
+
+src/   
+     -- source code for the models
+
+tools/
+    -- source code for interpolation of model output to a lat-lon grid.
+
+ -------------------------------------------------------------------------------
+ All inquiries regarding this release should be mailed to:
+ GFDL.Climate.Model.Info@noaa.gov
+ -------------------------------------------------------------------------------
+
+                    GNU General Public License
+
+ All software included with this package is free software; you can redistribute
+ it and/or modify it and are expected to follow the terms of the GNU General
+ Public License as published by the Free Software Foundation; either version 3
+ of the License, or (at your option) any later version.
+
+ It is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public
+ License for more details.
+
+ For the full text of the GNU General Public License,
+ write to: Free Software Foundation, Inc.,
+           675 Mass Ave, Cambridge, MA 02139, USA.
+ or see:   http://www.gnu.org/licenses/gpl.html
