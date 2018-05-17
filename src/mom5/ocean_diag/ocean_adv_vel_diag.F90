@@ -1,5 +1,8 @@
 module ocean_adv_vel_diag_mod
 !  
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> S.M. Griffies
+!</CONTACT>
+!
 !<OVERVIEW>
 ! Numerical diagnostics for advection velocity related quantities. 
 !</OVERVIEW>
@@ -86,13 +89,6 @@ integer :: id_ux_trans       =-1
 integer :: id_uy_trans       =-1
 integer :: id_uz_trans       =-1
 
-! for mixed layer mass budgets 
-integer :: id_mld_tx_trans       =-1
-integer :: id_mld_ty_trans       =-1
-integer :: id_mld_base_tx_trans  =-1
-integer :: id_mld_base_ty_trans  =-1
-integer :: id_mld_base_tz_trans  =-1
-
 ! for transport_on_rho
 integer :: id_tx_trans_rho=-1
 integer :: id_ty_trans_rho=-1
@@ -127,9 +123,9 @@ integer :: horz_grid
 logical :: module_is_initialized = .FALSE.
 
 character(len=128) :: version=&
-     '$Id: ocean_adv_vel_diag.F90,v 20.0.8.2 2014/03/20 20:50:06 Stephen.Griffies Exp $'
+     '$Id: ocean_adv_vel_diag.F90,v 20.0 2013/12/14 00:12:49 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 public ocean_adv_vel_diag_init
 public ocean_adv_vel_diagnostics 
@@ -263,23 +259,6 @@ id_tz_trans_sq = register_diag_field ('ocean_model','tz_trans_sq', Grd%tracer_ax
               missing_value=missing_value, range=(/-1e20,1e20/),                           &
               standard_name='square_of_upward_ocean_mass_transport')
 
-! to offline facilitate budget calculations, place these fluxes on the same tracer grid
-id_mld_tx_trans = register_diag_field ('ocean_model','mld_tx_trans', Grd%tracer_axes(1:2),            &
-              Time%model_time, 'T-cell i-mass transport summed over mixed layer',trim(transport_dims),&
-              missing_value=missing_value, range=(/-1e20,1e20/))
-id_mld_ty_trans = register_diag_field ('ocean_model','mld_ty_trans', Grd%tracer_axes(1:2),            &
-              Time%model_time, 'T-cell j-mass transport summed over mixed layer',trim(transport_dims),&
-              missing_value=missing_value, range=(/-1e20,1e20/))
-id_mld_base_tx_trans = register_diag_field ('ocean_model','mld_base_tx_trans', Grd%tracer_axes(1:2),    &
-              Time%model_time, 'T-cell i-mass transport crossing mixed layer base',trim(transport_dims),&
-              missing_value=missing_value, range=(/-1e20,1e20/))
-id_mld_base_ty_trans = register_diag_field ('ocean_model','mld_base_ty_trans', Grd%tracer_axes(1:2),    &
-              Time%model_time, 'T-cell j-mass transport crossing mixed layer base',trim(transport_dims),&
-              missing_value=missing_value, range=(/-1e20,1e20/))
-id_mld_base_tz_trans = register_diag_field ('ocean_model','mld_base_tz_trans', Grd%tracer_axes(1:2),    &
-              Time%model_time, 'T-cell k-mass transport crossing mixed layer base',trim(transport_dims),&
-              missing_value=missing_value, range=(/-1e20,1e20/))
-
 id_ux_trans = register_diag_field ('ocean_model','ux_trans', Grd%vel_axes_flux_x(1:3), &
               Time%model_time, 'U-cell i-mass transport',trim(transport_dims),         &
               missing_value=missing_value, range=(/-1e20,1e20/))
@@ -355,7 +334,7 @@ subroutine ocean_adv_vel_diagnostics(Time, Thickness, Adv_vel, T_prog, Dens, vis
   call mpp_clock_end(id_adv_vel_numerics)
   
   call mpp_clock_begin(id_transport_on_s)
-    call transport_on_s(Time, Dens, Adv_vel)
+    call transport_on_s(Time, Adv_vel)
   call mpp_clock_end(id_transport_on_s)
 
   call mpp_clock_begin(id_transport_on_rho)
@@ -847,10 +826,9 @@ end subroutine max_continuity_error
 ! and send to diag_manager.
 ! </DESCRIPTION>
 !
-subroutine transport_on_s(Time, Dens, Adv_vel)
+subroutine transport_on_s(Time, Adv_vel)
 
   type(ocean_time_type),    intent(in) :: Time
-  type(ocean_density_type), intent(in) :: Dens
   type(ocean_adv_vel_type), intent(in) :: Adv_vel
   integer :: i, j, k
   
@@ -859,6 +837,7 @@ subroutine transport_on_s(Time, Dens, Adv_vel)
     '==>Error ocean_adv_vel_diag_mod (transport_on_s): module needs initialization ')
   endif 
 
+  ! mass transports leaving faces of grid cells
   wrk1=0.0
 
   if (id_tx_trans > 0) then 
@@ -882,7 +861,7 @@ subroutine transport_on_s(Time, Dens, Adv_vel)
       enddo
       call diagnose_2d(Time, Grd, id_tx_trans_int_z, wrk1_2d(:,:))
   endif
-
+ 
   if (id_ty_trans > 0) then 
     do k=1,nk
       do j=jsc,jec
@@ -973,65 +952,6 @@ subroutine transport_on_s(Time, Dens, Adv_vel)
     call diagnose_3d_u(Time, Grd, id_uz_trans, wrk1(:,:,:))
   endif 
 
-
-  ! for mixed layer seawater mass budget 
-  if (id_mld_tx_trans > 0) then 
-      wrk1_2d(:,:) = 0.0
-      do k=1,nk
-         do j=jsc,jec 
-            do i=isc,iec
-               wrk1_2d(i,j) = wrk1_2d(i,j) + Dens%mld_mask(i,j,k)*Adv_vel%uhrho_et(i,j,k)*Grd%dyte(i,j)*transport_convert
-            enddo
-         enddo
-      enddo
-      call diagnose_2d(Time, Grd, id_mld_tx_trans, wrk1_2d(:,:))
-  endif
-  if (id_mld_ty_trans > 0) then 
-      wrk1_2d(:,:) = 0.0
-      do k=1,nk
-         do j=jsc,jec 
-            do i=isc,iec
-               wrk1_2d(i,j) = wrk1_2d(i,j) + Dens%mld_mask(i,j,k)*Adv_vel%vhrho_nt(i,j,k)*Grd%dxtn(i,j)*transport_convert
-            enddo
-         enddo
-      enddo
-      call diagnose_2d(Time, Grd, id_mld_ty_trans, wrk1_2d(:,:))
-  endif
-  if (id_mld_base_tx_trans > 0) then 
-      wrk1_2d(:,:) = 0.0
-      do k=1,nk
-         do j=jsc,jec 
-            do i=isc,iec
-               wrk1_2d(i,j) = wrk1_2d(i,j) + (Dens%mld_mask(i+1,j,k)-Dens%mld_mask(i,j,k))*Adv_vel%uhrho_et(i,j,k)*Grd%dyte(i,j)*transport_convert
-            enddo
-         enddo
-      enddo
-      call diagnose_2d(Time, Grd, id_mld_base_tx_trans, wrk1_2d(:,:))
-  endif
-  if (id_mld_base_ty_trans > 0) then 
-      wrk1_2d(:,:) = 0.0
-      do k=1,nk
-         do j=jsc,jec 
-            do i=isc,iec
-               wrk1_2d(i,j) = wrk1_2d(i,j) + (Dens%mld_mask(i,j+1,k)-Dens%mld_mask(i,j,k))*Adv_vel%vhrho_nt(i,j,k)*Grd%dxtn(i,j)*transport_convert
-            enddo
-         enddo
-      enddo
-      call diagnose_2d(Time, Grd, id_mld_base_ty_trans, wrk1_2d(:,:))
-  endif
-  if (id_mld_base_tz_trans > 0) then 
-      wrk1_2d(:,:) = 0.0
-      do j=jsc,jec 
-         do i=isc,iec
-            k = Dens%mld_k(i,j)  
-            wrk1_2d(i,j) = wrk1_2d(i,j) + Adv_vel%wrho_bt(i,j,k)*Grd%dat(i,j)*transport_convert
-         enddo
-      enddo
-      call diagnose_2d(Time, Grd, id_mld_base_tz_trans, wrk1_2d(:,:))
-  endif
-
-
-
 end subroutine transport_on_s
 ! </SUBROUTINE> NAME="transport_on_s"
 
@@ -1048,14 +968,18 @@ end subroutine transport_on_s
 !
 ! code history:
 !
+! 2002: Stephen.Griffies
+! Zhi.Liang
+! Alexander.Pletzer
+!
 ! 2007: updated algorithm with weighting as done in the paper
 ! Lee, Nurser, Coward, and de Cuevas, 2007:
 ! "Eddy advective and diffusive transports of heat and salt 
 ! in the Southern Ocean" JPO, vol 37, pages 1376-1393
 !
-! 2010: updated for optimization.
+! 2010: updated by Rusty.Benson for optimization.
 !
-! 2010: Corrected weighting
+! 2010: Corrected weighting by Stephen.Griffies
 !
 ! 2010: Removed the weighting in favor of a strait rebinning
 !       approach.  The weighting approach was 
@@ -1154,13 +1078,17 @@ end subroutine transport_on_nrho
 !
 ! Code history 
 !
+! 2002: Stephen.Griffies
+! Zhi.Liang
+! Alexander.Pletzer
+!
 ! 2007: updated algorithm with weighting as done in the paper
 ! Lee, Nurser, Coward, and de Cuevas, 2007:
 ! "Eddy advective and diffusive transports of heat and salt 
 ! in the Southern Ocean" JPO, vol 37, pages 1376-1393
 !
-! 2010: updated for optimization.
-!       corrected weigthing
+! 2010: updated by Rusty.Benson for optimization.
+!       corrected weigthing by Stephen.Griffies
 !
 ! 2010: Removed the weighting in favor of a strait rebinning
 !       approach.  The weighting approach was 
@@ -1260,13 +1188,17 @@ end subroutine transport_on_rho
 !
 ! Code history 
 !
+! 2002: Stephen.Griffies
+! Zhi.Liang
+! Alexander.Pletzer
+!
 ! 2007: updated algorithm with weighting as done in the paper
 ! Lee, Nurser, Coward, and de Cuevas, 2007:
 ! "Eddy advective and diffusive transports of heat and salt 
 ! in the Southern Ocean" JPO, vol 37, pages 1376-1393
 !
-! 2010: updated for optimization.
-!       corrected weigthing
+! 2010: updated by Rusty.Benson for optimization.
+!       corrected weigthing by Stephen.Griffies
 !
 ! 2010: Removed the weighting in favor of a strait rebinning
 !       approach.  The weighting approach was 

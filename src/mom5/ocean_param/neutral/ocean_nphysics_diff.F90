@@ -77,7 +77,7 @@ module ocean_nphysics_diff_mod
 character(len=128) :: version=&
      '$Id: ocean_nphysics_diff.F90,v 20.0 2013/12/14 00:14:42 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 character(len=*), parameter :: FILENAME=&
      __FILE__

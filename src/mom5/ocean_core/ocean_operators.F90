@@ -1,5 +1,17 @@
 module ocean_operators_mod
 !   
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> S.M. Griffies
+!</CONTACT>
+!
+!<REVIEWER EMAIL="GFDL.Climate.Model.Info@noaa.gov"> A. Rosati
+!</REVIEWER>
+!
+!<REVIEWER EMAIL="GFDL.Climate.Model.Info@noaa.gov"> Zhi Liang
+!</REVIEWER>
+!
+!<REVIEWER EMAIL="GFDL.Climate.Model.Info@noaa.gov"> Alexander Pletzer
+!</REVIEWER>
+!
 !<OVERVIEW>
 ! Operators for MOM
 !</OVERVIEW>
@@ -154,7 +166,7 @@ module ocean_operators_mod
        '$Id: ocean_operators.F90,v 20.0 2013/12/14 00:10:53 fms Exp $'
 
   character (len=128) :: tagname = &
-       '$Name: tikal_201409 $'
+       '$Name: tikal $'
 
   type(ocean_grid_type), pointer      :: Grd =>NULL()
   type(ocean_domain_type), pointer    :: Dom =>NULL()

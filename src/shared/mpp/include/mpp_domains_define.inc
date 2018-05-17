@@ -1,6 +1,6 @@
 
 ! -*-f90-*-
-! $Id: mpp_domains_define.inc,v 20.0.2.2.2.1.2.1 2014/02/19 13:51:20 Zhi.Liang Exp $
+! $Id$
 
 
   ! <SUBROUTINE NAME="mpp_define_layout2D" INTERFACE="mpp_define_layout">
@@ -139,6 +139,32 @@
     deallocate(pes)
 
   end subroutine mpp_define_mosaic_pelist
+
+  !-- The following implementation is different from mpp_compute_extents 
+  !-- The last block might have most points 
+  subroutine mpp_compute_block_extent(isg,ieg,ndivs,ibegin,iend)
+    integer,                 intent(in) :: isg, ieg, ndivs
+    integer, dimension(:), intent(out)  :: ibegin, iend
+
+    integer :: ndiv, imax, ndmax
+    integer :: is, ie, n
+
+    ie = ieg
+    do ndiv=ndivs,1,-1
+      !domain is sized by dividing remaining points by remaining domains
+      is = ie - CEILING( REAL(ie-isg+1)/ndiv ) + 1
+      ibegin(ndiv) = is
+      iend(ndiv) = ie
+      
+      if( ie.LT.is )call mpp_error( FATAL,  &
+          'MPP_DEFINE_DOMAINS(mpp_compute_block_extent): domain extents must be positive definite.' )
+      if( ndiv.EQ.1 .AND. ibegin(ndiv) .NE. isg ) &
+          call mpp_error( FATAL, 'mpp_compute_block_extent: domain extents do not span space completely.' )
+      ie = is - 1
+     end do
+
+  end subroutine mpp_compute_block_extent
+
 
   !#####################################################################
   subroutine mpp_compute_extent(isg,ieg,ndivs,ibegin,iend, extent )
@@ -491,7 +517,7 @@
     ndivx = size(domain%pearray,1)
     ndivy = size(domain%pearray,2)
     allocate(posarray(0:ndivx-1, 0:ndivy-1))
-    n = 0
+    n = domain%tile_root_pe - mpp_root_pe()
     posarray = -1
     do j = 0,ndivy-1
        do i = 0,ndivx-1

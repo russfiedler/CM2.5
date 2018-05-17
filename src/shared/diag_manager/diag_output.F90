@@ -1,6 +1,9 @@
 #include <fms_platform.h>
 
 MODULE diag_output_mod
+  ! <CONTACT EMAIL="seth.underwood@noaa.gov">
+  !   Seth Underwood
+  ! </CONTACT>
 
   ! <OVERVIEW> <TT>diag_output_mod</TT> is an integral part of
   !   <TT>diag_manager_mod</TT>. Its function is to write axis-meta-data,
@@ -49,9 +52,9 @@ MODULE diag_output_mod
   LOGICAL :: module_is_initialized = .FALSE.
 
   CHARACTER(len=128), PRIVATE :: version= &
-       '$Id: diag_output.F90,v 20.0.6.2 2014/07/29 20:19:10 sdu Exp $'
+       '$Id$'
   CHARACTER(len=128), PRIVATE :: tagname= &
-       '$Name: tikal_201409 $'
+       '$Name$'
 
 CONTAINS
 

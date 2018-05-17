@@ -1,6 +1,12 @@
 module ocean_coriolis_mod
 #define COMP isc:iec,jsc:jec
 !
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> A. Rosati
+!</CONTACT>
+!
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> S.M. Griffies
+!</CONTACT>
+!
 !<OVERVIEW>
 ! Compute the Coriolis acceleration for either Bgrid or Cgrid. 
 !</OVERVIEW>
@@ -94,7 +100,7 @@ type(ocean_grid_type), pointer :: Grd =>NULL()
 character(len=128) :: version = &
      '$Id: ocean_coriolis.F90,v 20.0 2013/12/14 00:10:38 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 ! for Bgrid or Cgrid
 integer :: horz_grid
@@ -142,7 +148,7 @@ subroutine ocean_coriolis_init(Grid, Domain, Time, Time_steps, Ocean_options, ho
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of defaults 
 #ifdef INTERNAL_FILE_NML

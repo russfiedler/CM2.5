@@ -58,7 +58,7 @@ type(ocean_domain_type), pointer :: Dom => NULL()
 type(ocean_grid_type),   pointer :: Grd => NULL()
 
 character(len=128)  :: version='$Id: ocean_shortwave.F90,v 20.0 2013/12/14 00:16:14 fms Exp $'
-character (len=128) :: tagname = '$Name: tikal_201409 $'
+character (len=128) :: tagname = '$Name: tikal $'
 
 public  ocean_shortwave_init
 public  ocean_irradiance_init
@@ -135,7 +135,7 @@ contains
     
     module_is_initialized = .TRUE.
 
-    call write_version_number( version, tagname )
+    call write_version_number(version, tagname)
 
 #ifdef INTERNAL_FILE_NML
     read (input_nml_file, nml=ocean_shortwave_nml, iostat=io_status)

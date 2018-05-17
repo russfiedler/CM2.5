@@ -353,7 +353,7 @@ type(ocean_domain_type), pointer :: Dom => NULL()
 character(len=256) :: version=&
      '=>Using: ocean_lapcgrid_friction.F90 ($Id: ocean_lapcgrid_friction.F90,v 20.0 2013/12/14 00:14:22 fms Exp $)'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 logical :: use_this_module       = .false.
 logical :: debug_this_module     = .false.
@@ -410,7 +410,7 @@ subroutine ocean_lapcgrid_friction_init(Grid, Domain, Time, Ocean_options, d_tim
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
 #ifndef MOM_STATIC_ARRAYS
   call get_local_indices(Domain, isd, ied, jsd, jed, isc, iec, jsc, jec)

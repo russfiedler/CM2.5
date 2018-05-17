@@ -95,7 +95,7 @@ public ocean_increment_eta_init
 public ocean_increment_eta_source
 
 character(len=126)  :: version = '$Id: ocean_increment_eta.F90,v 20.0 2013/12/14 00:15:56 fms Exp $'
-character (len=128) :: tagname = '$Name: tikal_201409 $'
+character (len=128) :: tagname = '$Name: tikal $'
 
 ! for diagnostics 
 logical :: used
@@ -147,7 +147,7 @@ subroutine ocean_increment_eta_init(Grid, Domain, Time)
   module_is_initialized = .TRUE.
 
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of default values
 #ifdef INTERNAL_FILE_NML

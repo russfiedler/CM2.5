@@ -285,7 +285,7 @@ character(len=48), parameter                    :: mod_name = 'ocean_tpm_mod'
 !
 
 character(len=128) :: version = '$Id: ocean_tpm.F90,v 20.0 2013/12/14 00:17:16 fms Exp $'
-character(len=128) :: tagname = '$Name: tikal_201409 $'
+character(len=128) :: tagname = '$Name: tikal $'
 
 integer :: imonth
 integer :: iyear

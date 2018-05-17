@@ -162,7 +162,7 @@ integer :: isd, ied, jsd, jed, isc, iec, jsc, jec, nk
 character(len=128) :: version=&
   '$Id: ocean_convect.F90,v 20.0 2013/12/14 00:16:32 fms Exp $'
 character (len=128) :: tagname = &
-  '$Name: tikal_201409 $'
+  '$Name: tikal $'
 
 logical :: module_is_initialized=.FALSE.
 logical :: use_this_module      =.false.
@@ -220,7 +220,7 @@ subroutine ocean_convect_init (Grid, Domain, Time, Dens, T_prog, Ocean_options, 
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   num_prog_tracers = size(T_prog(:))
 

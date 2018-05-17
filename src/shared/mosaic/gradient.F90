@@ -1,4 +1,7 @@
 module gradient_mod
+! <CONTACT EMAIL="Zhi.Liang@noaa.gov">
+!   Zhi Liang
+! </CONTACT>
 
 ! <HISTORY SRC="http://www.gfdl.noaa.gov/fms-cgi-bin/cvsweb.cgi/FMS/"/>
 
@@ -21,8 +24,8 @@ private
 public :: gradient_cubic
 public :: calc_cubic_grid_info
 
-character(len=128) :: version = '$Id: gradient.F90,v 16.0 2008/07/30 22:46:00 fms Exp $'
-character(len=128) :: tagname = '$Name: tikal_201409 $'
+character(len=128) :: version = '$Id$'
+character(len=128) :: tagname = '$Name$'
 
 contains
 

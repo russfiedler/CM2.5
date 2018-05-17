@@ -344,7 +344,7 @@ integer :: index_salt=-1
 character(len=128) :: version=&
      '$Id: ocean_sigma_transport.F90,v 20.0 2013/12/14 00:14:30 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 integer :: unit=6  
 logical :: module_is_initialized = .FALSE.
@@ -432,7 +432,7 @@ subroutine ocean_sigma_transport_init(Grid, Domain, Time, Dens, T_prog, Ocean_op
   module_is_initialized = .TRUE.
   vert_coordinate       = ver_coordinate 
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of defaults 
 #ifdef INTERNAL_FILE_NML

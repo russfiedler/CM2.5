@@ -131,7 +131,7 @@ logical, dimension(:), allocatable   :: error_spread   ! for checking that all s
 character(len=256) :: version=&
        '$Id: ocean_riverspread.F90,v 20.0 2013/12/14 00:16:12 fms Exp $)'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 integer :: isd, ied, jsd, jed, isc, iec, jsc, jec, nk
 real    :: dtime 
@@ -203,7 +203,7 @@ subroutine ocean_riverspread_init(Grid, Domain, Ocean_options, dtime_t)
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   call get_local_indices(Domain,isd,ied,jsd,jed,isc,iec,jsc,jec)
   nk = Grid%nk

@@ -16,6 +16,12 @@
 
 module ocean_types_mod
 !
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> Matt Harrison
+!</CONTACT>
+!
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov">
+! S. M. Griffies 
+!</CONTACT>
 !
 !<OVERVIEW>
 ! This module contains type declarations and default values for ocean model.
@@ -40,9 +46,9 @@ module ocean_types_mod
 
   logical :: module_is_initialized=.false.
   character(len=128) :: version = &
-     '$Id: ocean_types.F90,v 20.0.8.1 2014/03/19 20:58:42 Stephen.Griffies Exp $'
+     '$Id: ocean_types.F90,v 20.0 2013/12/14 00:12:37 fms Exp $'
   character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 
   type, public :: obc_flux
@@ -419,6 +425,8 @@ module ocean_types_mod
      real, dimension(isd:ied,jsd:jed,nk)   :: drhodP               ! partial rho wrt pressure (kg/(m^3 Pa)
      real, dimension(isd:ied,jsd:jed,nk)   :: drhodz_wt            ! d(neutral density)/dz (kg/m^4) at W-point
      real, dimension(isd:ied,jsd:jed,nk)   :: drhodz_zt            ! d(neutral density)/dz (kg/m^4) at T-point
+     real, dimension(isd:ied,jsd:jed,nk)   :: drhodx_zt            ! d(neutral density)/dx (kg/m^4) at T-point
+     real, dimension(isd:ied,jsd:jed,nk)   :: drhody_zt            ! d(neutral density)/dy (kg/m^4) at T-point
      real, dimension(isd:ied,jsd:jed,nk)   :: drhodz_diag          ! regularized drhodz_zt for diagnostics 
      real, dimension(isd:ied,jsd:jed,nk)   :: dTdz_zt              ! partial theta wrt z  (C/m) at T-point
      real, dimension(isd:ied,jsd:jed,nk)   :: dSdz_zt              ! partial salinity wrt z  (psu/m) at T-point
@@ -426,9 +434,7 @@ module ocean_types_mod
      real, dimension(isd:ied,jsd:jed,nk)   :: neutralrho           ! neutral density (kg/m^3)
      real, dimension(isd:ied,jsd:jed,nk)   :: watermass_factor        ! ratio (|grad nrho|/|grad local ref potrho|) / delta(gamma)
      real, dimension(isd:ied,jsd:jed,nk)   :: stratification_factor   ! rho*Area(h) / gamma_{,h}, w/ h=direction w/ max gamma strat
-     real, dimension(isd:ied,jsd:jed,nk)   :: mld_mask                ! masking array =1 inside mixed layer and =0 outside 
      real, dimension(isd:ied,jsd:jed)      :: mld_subduction          ! depth mixed layer base (m) for subduction diagnostics 
-     integer, dimension(isd:ied,jsd:jed)   :: mld_k                   ! k-level where mixed layer base sits 
      integer, dimension(3)                 :: potrho_axes             ! axis ids for diagnosing potential density 
      integer, dimension(3)                 :: potrho_axes_flux_x      ! axis ids for diagnosing x-flux
      integer, dimension(3)                 :: potrho_axes_flux_y      ! axis ids for diagnosing y-flux
@@ -553,6 +559,7 @@ module ocean_types_mod
      real, dimension(isd:ied,jsd:jed,2)      :: bmf             ! momentum flux per mass into ocean bottom  (N/m^2)
      real, dimension(isd:ied,jsd:jed)        :: gamma           ! dimensionful bottom drag coefficient (kg/(m^2 sec))
      real, dimension(isd:ied,jsd:jed)        :: langmuirfactor  ! dimensionless langmuir turbulence enhancement factor (non dimensional)
+     real, dimension(isd:ied,jsd:jed)        :: u10             ! 10m wind speed (m/s)
      real, dimension(isd:ied,jsd:jed)        :: ustoke          ! x-dir surface stokes drift (m/s)
      real, dimension(isd:ied,jsd:jed)        :: vstoke          ! y-dir surface stokes drift (m/s)
      real, dimension(isd:ied,jsd:jed)        :: wavlen          ! wave length (m)
@@ -957,6 +964,8 @@ module ocean_types_mod
      real, _ALLOCATABLE, dimension(:,:,:)   :: drhodP            _NULL ! partial rho wrt pressure (kg/(m3 Pa)
      real, _ALLOCATABLE, dimension(:,:,:)   :: drhodz_wt         _NULL ! d(neutral rho)/dz (kg/m^4) at W-point
      real, _ALLOCATABLE, dimension(:,:,:)   :: drhodz_zt         _NULL ! d(neutral rho)/dz (kg/m^4) at T-point
+     real, _ALLOCATABLE, dimension(:,:,:)   :: drhodx_zt         _NULL ! d(neutral rho)/dx (kg/m^4) at T-point
+     real, _ALLOCATABLE, dimension(:,:,:)   :: drhody_zt         _NULL ! d(neutral rho)/dy (kg/m^4) at T-point
      real, _ALLOCATABLE, dimension(:,:,:)   :: drhodz_diag       _NULL ! regularized drhodz_zt for diagnostics 
      real, _ALLOCATABLE, dimension(:,:,:)   :: dTdz_zt           _NULL ! partial theta wrt z  (C/m) at T-point
      real, _ALLOCATABLE, dimension(:,:,:)   :: dSdz_zt           _NULL ! partial salinity wrt z  (psu/m) at T-point
@@ -964,7 +973,6 @@ module ocean_types_mod
      real, _ALLOCATABLE, dimension(:,:,:)   :: neutralrho        _NULL ! neutral density (kg/m^3)
      real, _ALLOCATABLE, dimension(:,:,:)   :: watermass_factor      _NULL ! ratio |grad nrho|/|grad local ref potrho|*/delta(gamma)
      real, _ALLOCATABLE, dimension(:,:,:)   :: stratification_factor _NULL ! ratio |grad nrho|/|grad local ref potrho|*/delta(gamma)
-     real, _ALLOCATABLE, dimension(:,:,:)   :: mld_mask              _NULL ! masking array =1 inside mixed layer and =0 outside
      real, _ALLOCATABLE, dimension(:,:)     :: mld_subduction        _NULL ! depth mixed layer base (m) for subduction diagnostics 
      real, _ALLOCATABLE, dimension(:)       :: theta_ref             _NULL ! partition vertical into theta classes 
      real, _ALLOCATABLE, dimension(:)       :: theta_bounds          _NULL ! bounds for theta classes 
@@ -972,7 +980,6 @@ module ocean_types_mod
      real, _ALLOCATABLE, dimension(:)       :: potrho_bounds         _NULL ! bounds for potrho classes 
      real, _ALLOCATABLE, dimension(:)       :: neutralrho_ref        _NULL ! partition vertical into neutral density classes 
      real, _ALLOCATABLE, dimension(:)       :: neutralrho_bounds     _NULL ! bounds for neutral density classes 
-     integer, _ALLOCATABLE, dimension(:,:)  :: mld_k                 _NULL ! k-level where mixed layer base sits
      integer, dimension(3)                  :: potrho_axes             ! axis ids for diagnosing potential density 
      integer, dimension(3)                  :: potrho_axes_flux_x          ! axis ids for diagnosing x-flux
      integer, dimension(3)                  :: potrho_axes_flux_y          ! axis ids for diagnosing y-flux
@@ -1213,7 +1220,17 @@ module ocean_types_mod
      real, pointer, dimension(:,:) :: ustoke          =>NULL() ! x-dir surface stokes drift
      real, pointer, dimension(:,:) :: vstoke          =>NULL() ! y-dir surface stokes drift
      real, pointer, dimension(:,:) :: wavlen          =>NULL() ! wave length
-
+#if defined(ACCESS)
+     real, pointer, dimension(:,:) :: aice             =>NULL() !  ice fraction
+     real, pointer, dimension(:,:) :: mh_flux          =>NULL() ! heat flux from melting ice (W/m^2)
+     real, pointer, dimension(:,:) :: wfimelt          =>NULL() ! water flux from melting ice (kg/m^2/s)
+     real, pointer, dimension(:,:) :: wfiform          =>NULL() ! water flux from forming ice (kg/m^2/s)
+#if defined(ACCESS_CM)
+     real, pointer, dimension(:,:) :: co2              =>NULL() ! co2
+!     real, pointer, dimension(:,:) :: wnd              =>NULL() ! wind speed
+#endif
+#endif
+     real, pointer, dimension(:,:) :: wnd              =>NULL() ! wind speed
      integer :: xtype                                          ! REGRID, REDIST or DIRECT
 
      type(coupler_2d_bc_type)      :: fluxes                   ! array of fields used for additional tracers
@@ -1233,6 +1250,13 @@ module ocean_types_mod
      real, pointer, dimension(:,:)    :: frazil  =>NULL() ! accumulated heating (J/m^2) from 
                                                           ! frazil formation in the ocean 
      real, pointer, dimension(:,:)    :: area    =>NULL() ! T-cell area.
+#if defined(ACCESS)
+     real, pointer, dimension(:,:,:)  :: gradient =>NULL() ! x/y slopes of sea surface.
+#if defined(ACCESS_CM)
+     real, pointer, dimension(:,:)    :: co2     =>NULL() ! co2 ( )
+     real, pointer, dimension(:,:)    :: co2flux =>NULL() ! co2 flux ()
+#endif
+#endif
      logical, pointer, dimension(:,:) :: maskmap =>NULL()! A pointer to an array indicating which
                                                          ! logical processors are actually used for
                                                          ! the ocean code. The other logical

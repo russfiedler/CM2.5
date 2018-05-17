@@ -1,6 +1,12 @@
 module ocean_vert_mix_mod
 #define COMP isc:iec,jsc:jec
 !
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> S.M. Griffies
+!</CONTACT>
+!
+!<REVIEWER EMAIL="GFDL.Climate.Model.Info@noaa.gov"> A. Rosati
+!</REVIEWER>
+!
 !<OVERVIEW>
 ! Time tendency from vertical mixing 
 !</OVERVIEW>
@@ -657,7 +663,7 @@ real, dimension(:,:,:), allocatable :: flux_z
 character(len=128) :: version = &
      '$Id: ocean_vert_mix.F90,v 20.0 2013/12/14 00:16:48 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 logical :: module_is_initialized   = .false.
 logical :: debug_this_module       = .false. 
@@ -722,7 +728,7 @@ subroutine ocean_vert_mix_init (Grid, Domain, Time, Dens, Velocity, Time_steps, 
      if (trim(T_prog(n)%name) == 'salt') index_salt = n
   enddo
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
 #ifdef INTERNAL_FILE_NML
 read (input_nml_file, nml=ocean_vert_mix_nml, iostat=io_status)

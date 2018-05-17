@@ -1,6 +1,6 @@
 
 ! -*-f90-*-
-! $Id: mpp_io_write.inc,v 20.0.8.2.2.2.2.1.2.1 2014/06/19 14:57:03 Peter.Phillipps Exp $
+! $Id$
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !                                                                            !
@@ -162,12 +162,13 @@
       return
     end subroutine mpp_write_meta_global_scalar_r
       
-    subroutine mpp_write_meta_global_scalar_i( unit, name, ival )
+    subroutine mpp_write_meta_global_scalar_i( unit, name, ival, pack )
       integer, intent(in) :: unit
       character(len=*), intent(in) :: name
       integer, intent(in) :: ival
+      integer, intent(in), optional :: pack
       
-      call mpp_write_meta_global( unit, name, ival=(/ival/) )
+      call mpp_write_meta_global( unit, name, ival=(/ival/), pack=pack )
       return
     end subroutine mpp_write_meta_global_scalar_i
       
@@ -213,12 +214,13 @@
       return
     end subroutine mpp_write_meta_scalar_r
       
-    subroutine mpp_write_meta_scalar_i( unit, id, name, ival )
+    subroutine mpp_write_meta_scalar_i( unit, id, name, ival,pack )
       integer, intent(in) :: unit, id
       character(len=*), intent(in) :: name
       integer, intent(in) :: ival
+      integer, intent(in), optional :: pack
       
-      call mpp_write_meta( unit, id, name, ival=(/ival/) )
+      call mpp_write_meta( unit, id, name, ival=(/ival/),pack=pack )
       return
     end subroutine mpp_write_meta_scalar_i
       
@@ -505,7 +507,7 @@
       return
     end subroutine mpp_write_meta_axis_r1d
 
-    subroutine mpp_write_meta_axis_i1d( unit, axis, name, units, longname, data, min, compressed)
+    subroutine mpp_write_meta_axis_i1d(unit, axis, name, units, longname, data, min, compressed)
 !load the values in an axistype (still need to call mpp_write)
 !write metadata attributes for axis
 !it is declared intent(inout) so you can nullify pointers in the incoming object if needed
@@ -571,6 +573,67 @@
 !      call mpp_clock_end(mpp_write_clock)           
       return
     end subroutine mpp_write_meta_axis_i1d
+
+
+    subroutine mpp_write_meta_axis_unlimited(unit, axis, name, data, unlimited, units, longname)
+!load the values in an axistype (still need to call mpp_write)
+!write metadata attributes for axis
+!it is declared intent(inout) so you can nullify pointers in the incoming object if needed
+!the f90 standard doesn't guarantee that intent(out) on a type guarantees that its pointer components will be unassociated
+      integer,          intent(in)           :: unit
+      type(axistype),   intent(inout)        :: axis
+      character(len=*), intent(in)           :: name
+      integer,          intent(in)           :: data  ! Number of elements to be written
+      logical,          intent(in)           :: unlimited  ! Provides unique arg signature
+      character(len=*), intent(in), optional :: units, longname
+
+      integer :: istat      
+      logical :: domain_exist
+      type(domain2d), pointer :: io_domain => NULL()
+
+!      call mpp_clock_begin(mpp_write_clock)
+      if( .NOT.module_is_initialized    )call mpp_error( FATAL, 'MPP_WRITE_META_I1D: must first call mpp_io_init.' )
+      if( .NOT. mpp_file(unit)%write_on_this_pe) then
+!         call mpp_clock_end(mpp_write_clock)
+         return
+      endif
+      if( .NOT.mpp_file(unit)%opened )call mpp_error( FATAL, 'MPP_WRITE_META: invalid unit number.' )
+      if( mpp_file(unit)%initialized ) &
+           call mpp_error( FATAL, 'MPP_WRITE_META_I1D: cannot write metadata to file after an mpp_write.' )
+
+!load axistype
+      axis%name     = name
+      if(present(units)) axis%units    = units
+      if(present(longname)) axis%longname = longname
+      axis%len = 1
+      allocate(axis%idata(1))
+      axis%idata = data
+!write metadata
+      if( mpp_file(unit)%format.EQ.MPP_NETCDF )then
+          error = NF_DEF_DIM( mpp_file(unit)%ncid, axis%name, NF_UNLIMITED, axis%did )
+          call netcdf_err( error, mpp_file(unit), axis )
+          error = NF_DEF_VAR( mpp_file(unit)%ncid, axis%name, NF_INT, 0, axis%did, axis%id )
+          call netcdf_err( error, mpp_file(unit), axis )
+      else
+          call mpp_error( FATAL, 'MPP_WRITE_META_AXIS_UNLIMITED: Only netCDF format is currently supported.' )
+      end if  
+!write axis attributes
+      if(present(longname)) then
+         call mpp_write_meta(unit,axis%id,'long_name',cval=axis%longname); axis%natt=axis%natt+1
+      endif
+      if(present(units)) then
+         call mpp_write_meta(unit,axis%id,'units',     cval=axis%units); axis%natt=axis%natt+1
+      endif
+      if( verbose )print '(a,2i6,x,a,2i3)', &
+          'MPP_WRITE_META_UNLIMITED: Wrote axis metadata, pe, unit, axis%name, axis%id, axis%did=', &
+           pe, unit, trim(axis%name), axis%id, axis%did
+      
+      mpp_file(unit)%ndim = max(1,mpp_file(unit)%ndim + 1)
+
+!      call mpp_clock_end(mpp_write_clock)           
+      return
+    end subroutine mpp_write_meta_axis_unlimited
+
 
     subroutine mpp_write_meta_field( unit, field, axes, name, units, longname,&
          min, max, missing, fill, scale, add, pack, time_method,standard_name, checksum)
@@ -755,6 +818,22 @@
       if ( present(fill) ) then
          if( field%pack.EQ.1 .OR. field%pack.EQ.2 )then
             call mpp_write_meta( unit, field%id, '_FillValue', rval=field%fill, pack=pack )
+         else if (field%pack==0) then ! some safety checks for integer fills
+            if ( present(scale).OR.present(add) ) then
+               call mpp_error(FATAL,"add,scale not currently implimented for pack=0 int handling, try reals instead.")
+            else
+               if (KIND(field%fill)==DOUBLE_KIND) then
+                  !! check if type safe cast
+                  if ( field%fill /= TRANSFER( IBITS( TRANSFER(field%fill,INT(0,DOUBLE_KIND)) ,0 , BIT_SIZE(INT(0,INT_KIND))) , field%fill ) ) then
+                     call mpp_error(FATAL,"mpp_io(mpp_io_write.inc): For pack=0, fill and data should both be safely castable"// &
+                          "to NF_INT type, _FillValue was actually using more precision than INT_KIND, cannot safely cast.")
+                  end if  
+               else if (KIND(field%fill)/=INT_KIND) then
+                  call mpp_error(FATAL,"mpp_io(mpp_io_write.inc): Unexpected KIND of fill, use either 4, or 8 byte KIND.")
+               end if
+               !! then safe to write ival _FillValue and pack
+               call mpp_write_meta( unit, field%id, '_FillValue', ival=TRANSFER( field%fill, INT(0,INT_KIND)), pack=pack )
+            end if                     
          else
             a = nint((fill-add)/scale)
             call mpp_write_meta( unit, field%id, '_FillValue', rval=a, pack=pack )
@@ -836,9 +915,20 @@
       integer, allocatable :: rval_i(:)
 #ifdef use_netCDF
       if( PRESENT(rval) )then
-!pack is only meaningful for FP numbers
+!pack was only meaningful for FP numbers, but is now extended by the ival branch of this routine
           if( PRESENT(pack) )then
-              if( pack.EQ.1 )then
+             if( pack== 0 ) then !! here be dragons, use ival branch!...
+                if( KIND(rval).EQ.DOUBLE_KIND )then
+                   call mpp_error( FATAL, &
+                        'WRITE_ATTRIBUTE_NETCDF: attempting to write internal NF_INT, currently int32, as double.' )
+                   error = NF_PUT_ATT_DOUBLE( mpp_file(unit)%ncid, id, name, NF_DOUBLE, size(rval(:)), rval )
+                else if( KIND(rval).EQ.FLOAT_KIND )then
+                   call mpp_error( FATAL, &
+                        'WRITE_ATTRIBUTE_NETCDF: attempting to write internal NF_INT, currently int32, as float.' )
+                   error = NF_PUT_ATT_REAL  ( mpp_file(unit)%ncid, id, name, NF_DOUBLE, size(rval(:)), rval )
+                end if
+                call netcdf_err( error, mpp_file(unit), string=' Attribute='//name )
+             else if( pack.EQ.1 )then
                   if( KIND(rval).EQ.DOUBLE_KIND )then
                       error = NF_PUT_ATT_DOUBLE( mpp_file(unit)%ncid, id, name, NF_DOUBLE, size(rval(:)), rval )
                   else if( KIND(rval).EQ.FLOAT_KIND )then
@@ -887,8 +977,20 @@
               call netcdf_err( error, mpp_file(unit), string=' Attribute='//name )
           end if
       else if( PRESENT(ival) )then
+          if( PRESENT(pack) ) then
+             if (pack ==0) then
+                if (KIND(ival).EQ.LONG_KIND ) then
+                   call mpp_error(FATAL,'only use NF_INTs with pack=0 for now')
+                end if
+                error = NF_PUT_ATT_INT( mpp_file(unit)%ncid, id, name, NF_INT, size(ival(:)), ival ) !!XXX int32_t..
+                call netcdf_err( error, mpp_file(unit), string=' Attribute='//name )
+             else
+                call mpp_error( FATAL, 'WRITE_ATTRIBUTE_NETCDF: only implimented ints when pack=0, else use reals.' )
+             endif
+          else
           error = NF_PUT_ATT_INT ( mpp_file(unit)%ncid, id, name, NF_INT, size(ival(:)), ival )
           call netcdf_err( error, mpp_file(unit), string=' Attribute='//name )
+          end if
       else if( present(cval) )then
           error = NF_PUT_ATT_TEXT( mpp_file(unit)%ncid, id, name, len_trim(cval), cval )
           call netcdf_err( error, mpp_file(unit), string=' Attribute='//name )
@@ -966,6 +1068,12 @@
 #undef MPP_TYPE_
 #define MPP_TYPE_ real
 #include <mpp_write_compressed.h>
+
+#undef MPP_WRITE_UNLIMITED_AXIS_1D_
+#define MPP_WRITE_UNLIMITED_AXIS_1D_ mpp_write_unlimited_axis_r1d
+#undef MPP_TYPE_
+#define MPP_TYPE_ real
+#include <mpp_write_unlimited_axis.h>
 
 #undef MPP_WRITE_
 #define MPP_WRITE_ mpp_write_r0D

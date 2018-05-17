@@ -516,7 +516,7 @@ integer :: neutralrho_nk
 character(len=128) :: version=&
      '$Id: ocean_nphysicsC.F90,v 20.0 2013/12/14 00:14:40 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 character(len=*), parameter :: FILENAME=&
      __FILE__
@@ -692,7 +692,7 @@ subroutine ocean_nphysicsC_init(Grid, Domain, Time, Time_steps, Thickness, Dens,
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   num_prog_tracers = size(T_prog(:))
   dtime            = Time_steps%dtime_t

@@ -1,6 +1,14 @@
 module ocean_pressure_mod
 #define COMP isc:iec,jsc:jec
 !  
+! <CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov">
+! S.M. Griffies 
+! </CONTACT>
+!
+! <REVIEWER EMAIL="GFDL.Climate.Model.Info@noaa.gov">
+! A. Rosati 
+! </REVIEWER>
+!
 !<OVERVIEW>
 ! Compute the hydrostatic pressure and forces from pressure. 
 ! Includes methods for either Bgrid or Cgrid. 
@@ -105,7 +113,7 @@ type(ocean_grid_type), pointer   :: Grd =>NULL()
 character(len=128) :: version = &
      '$Id: ocean_pressure.F90,v 20.0 2013/12/14 00:10:57 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 ! for vertical coordinate
 integer :: vert_coordinate 
@@ -190,7 +198,7 @@ subroutine ocean_pressure_init(Grid, Domain, Time, ver_coordinate, &
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   vert_coordinate       = ver_coordinate
   vert_coordinate_class = ver_coordinate_class

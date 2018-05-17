@@ -238,7 +238,6 @@ integer :: id_mass_en(2)       = -1
 integer :: id_mass_uE          = -1
 integer :: id_mass_t           = -1
 integer :: id_mass_tendency    = -1
-integer :: id_mld_mass_tendency= -1
 integer :: id_thicku           = -1
 integer :: id_thicken(2)       = -1
 integer :: id_rescale_mass     = -1
@@ -289,9 +288,9 @@ real, allocatable, dimension(:,:) :: data
 
 
 character(len=128) :: version=&
-     '$Id: ocean_thickness.F90,v 20.0.8.2 2014/03/20 20:50:06 Stephen.Griffies Exp $'
+     '$Id: ocean_thickness.F90,v 20.0 2013/12/14 00:12:33 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 type(ocean_domain_type), pointer :: Dom =>NULL()
 
@@ -610,7 +609,7 @@ subroutine ocean_thickness_init  (Time, Time_steps, Domain, Grid, Ext_mode, Thic
 
       if(vert_coordinate_class==PRESSURE_BASED) then 
           call read_data('INPUT/rho0_profile.nc','rho0_profile', rho0_profile)
-          write(stdoutunit,'(/a/)') 'rho0_profile is used to define pressure grid and pressure gradients.'
+          write(stdoutunit,'(a)') 'rho0_profile is used to define pressure grid and pressure gradients.'
           do k=1,nk
              write(stdoutunit,'(a,i4,a,e22.12)') 'rho0_profile(',k,') = ',rho0_profile(k)
              if(rho0_profile(k) <= 0.0) then 
@@ -648,7 +647,7 @@ subroutine ocean_thickness_init  (Time, Time_steps, Domain, Grid, Ext_mode, Thic
   do j=jsc,jec
      do i=isc,iec
         if(Grid%ht(i,j) > 0.0 .and. Grid%ht(i,j) < thickness_dzt_min) then 
-            write(unit,'(/a,i4,a,i4,e22.12,a,e22.12)') &
+            write(unit,'(a,i4,a,i4,a,e22.12,a,e22.12)') &
             '==>Error: ocean_thickness_init: ht(',i+Dom%ioff,',',j+Dom%joff,') = ',Grid%ht(i,j), &
             'is less than the chosen setting for thickness_dzt_min = ',thickness_dzt_min
             error_flag=.true.
@@ -666,7 +665,7 @@ subroutine ocean_thickness_init  (Time, Time_steps, Domain, Grid, Ext_mode, Thic
       do j=jsc,jec
          do i=isc,iec
             if(Grid%ht(i,j) > 0.0 .and. Grid%ht(i,j) < thickness_dzt_min_init) then 
-                write(unit,'(/a,i4,a,i4,e22.12,a,e22.12)') &
+                write(unit,'(a,i4,a,i4,a,e22.12,a,e22.12)') &
                 '==>Error: ocean_thickness_init: ht(',i+Dom%ioff,',',j+Dom%joff,') = ',Grid%ht(i,j), &
                 'is less than the chosen setting for thickness_dzt_min_init = ',thickness_dzt_min_init
                 error_flag=.true.
@@ -914,12 +913,6 @@ subroutine ocean_thickness_init  (Time, Time_steps, Domain, Grid, Ext_mode, Thic
                   Time%model_time, 'tendency for ocean t-cell mass', 'kg/s',                        &
                   missing_value=missing_value, range=(/-1.e20,1.e20/))
   endif
-
-  id_mld_mass_tendency = register_diag_field ('ocean_model', 'mld_mass_tendency', Grid%tracer_axes(1:2), &
-                                             Time%model_time, 'mld_rho_dzt_tendency', 'kg/s',            &
-                                             missing_value=missing_value, range=(/-1e10,1e10/))  
-
-
 
 end subroutine ocean_thickness_init
 ! </SUBROUTINE> NAME="ocean_thickness_init"
@@ -3901,12 +3894,11 @@ end subroutine update_ucell_thickness
 !  vertical coordinate. 
 ! </DESCRIPTION>
 !
-subroutine rho_dzt_tendency(Time, Grid, Ext_mode, Dens, Thickness)
+subroutine rho_dzt_tendency(Time, Grid, Ext_mode, Thickness)
   
   type(ocean_time_type),          intent(in)    :: Time
   type(ocean_grid_type),          intent(in)    :: Grid  
   type(ocean_external_mode_type), intent(in)    :: Ext_mode
-  type(ocean_density_type),       intent(in)    :: Dens
   type(ocean_thickness_type),     intent(inout) :: Thickness 
 
   integer :: i, j, k
@@ -3988,17 +3980,6 @@ subroutine rho_dzt_tendency(Time, Grid, Ext_mode, Dens, Thickness)
       call diagnose_3d(Time, Grid, id_mass_tendency, wrk1(:,:,:))
   endif
 
-  if (id_mld_mass_tendency > 0) then 
-      wrk1_2d(:,:) = 0.0
-      do k=1,nk
-         do j=jsc,jec
-            do i=isc,iec
-               wrk1_2d(i,j) = wrk1_2d(i,j) + Dens%mld_mask(i,j,k)*Grid%dat(i,j)*Thickness%rho_dzt_tendency(i,j,k)
-            enddo
-         enddo
-      enddo
-      call diagnose_2d(Time, Grid, id_mld_mass_tendency, wrk1_2d(:,:))
-  endif
 
 
 end subroutine rho_dzt_tendency
@@ -4554,14 +4535,13 @@ subroutine update_tcell_thick_blob(Time, Grid, Ext_mode, Dens, Thickness)
   ! have been updated in dzt_dst_update
 
   ! update specific thicknesses and vertical increments 
-  if(vert_coordinate==GEOPOTENTIAL) then
-      k=1 
+  if(vert_coordinate==GEOPOTENTIAL) then 
       do j=jsd,jed
          do i=isd,ied 
             Thickness%dztloT(i,j,1)     = Thickness%dstlo(i,j,1)*Thickness%dzt_dst(i,j,1)
             Thickness%dztupT(i,j,1)     = Thickness%dstup(i,j,1)*Thickness%dzt_dst(i,j,1)
             Thickness%dztT(i,j,1,taup1) = Thickness%dztloT(i,j,1) + Thickness%dztupT(i,j,1) 
-            Thickness%rho_dztT(i,j,k,taup1) = Thickness%rho_dztT(i,j,k,tau) + dtime*Thickness%rho_dzt_tendency(i,j,k)
+            Thickness%rho_dztT(i,j,1,taup1) = Thickness%rho_dztT(i,j,1,tau) + dtime*Thickness%rho_dzt_tendency(i,j,1)
             wrk1(i,j,:) = 1.0  
          enddo
       enddo

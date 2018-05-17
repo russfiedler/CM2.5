@@ -1,0 +1,179 @@
+#!/bin/csh -f
+#PBS -P v14
+#PBS -l wd 
+#PBS -o /short/v14/raf599/CM2.5/ascii_output/
+#PBS -N CM2.5
+#PBS -W umask=007
+#PBS -q normal
+#PBS -j oe
+#PBS -l walltime=02:00:00
+#PBS -l mem=2000GB
+#PBS -l ncpus=1200
+#PBS -l other=gdata1
+
+
+set echo 
+#--------------------------------------------------------------------------------------------------------
+set Root = $cwd/..                                       # The root directory; where the release package was extracted.
+set platform  = nci                                    # A unique identifier for your platform
+set npes      = 1200                                     # Number of processors
+set num_executions = 3                                   # Number of times the model is run. Each run restarts from previous run.
+set time_stamp    = $Root/bin/time_stamp.csh             # Path to timestamp.csh
+set mppnccombine  = $Root/bin/mppnccombine.$platform     # Path to executable mppnccombine
+set landnccombine = $Root/bin/landnccombine.$platform    # Path to executable landnccombine
+set fregrid       = $Root/bin/fregrid_parallel.$platform # Path to executable and grid data for fregrid
+set model_executable = $Root/exp/exec.$platform/CM2.5.x  # Path to model executable
+set workdir = /short/v14/$USER/work/CM2.5                # Where model is run and model output is is put
+#--------------------------------------------------------------------------------------------------------
+source  /opt/Modules/3.2.6/init/csh
+module purge
+module load dot
+module load intel-fc/17.0.1.132
+module load intel-cc/17.0.1.132
+module load netcdf/4.4.1.1
+module load hdf5/1.8.14
+module load openmpi/1.10.2
+module load nco/4.6.4
+module list
+
+setenv MAIN_PROGRAM coupler_main.o
+
+set namelist   = $Root/exp/CM2.5_namelists.raijin    # path to namelist file (contains all namelists)
+set diagtable  = $Root/exp/CM2.5_diag_table.raijin   # path to diagnositics table (specifies fields and files for diagnostic output)
+set fieldtable = $Root/exp/CM2.5_field_table  # path to field table (specifies tracers)
+set bdtable    = $Root/exp/BetaDistributionTable.txt
+#--------------------------------------------------------------------------------------------------------
+# The gaea locations of the input data sets are listed below
+set gridSpec  = /g/data/v14/raf599/fms/CM2.5/gridSpec/mosaics_v20110920.tar
+set initCond  = /g/data/v14/raf599/fms/CM2.5/initCond/L01_init_Dec2011.tar
+set CM2_input = /g/data/v14/raf599/fms/CM2.5/inputs/CM2.5_C02_INPUT_seawifs_tideamp.tar
+#--------------------------------------------------------------------------------------------------------
+# The input data should also be put here: ftp://ftp.gfdl.noaa.gov/pub/projects/CM2.5_and_FLOR/CM2.5_input_data.tar.gz
+#--------------------------------------------------------------------------------------------------------
+# setup directory structure
+unlimit
+limit coredumpsize 0
+if ( -d $workdir ) then
+  /bin/rm -rf $workdir/*
+else
+  mkdir -p $workdir
+endif
+cd $workdir
+mkdir INPUT RESTART
+#--------------------------------------------------------------------------------------------------------
+# get input data and executable
+cp $namelist   input.nml
+cp $diagtable  diag_table
+cp $fieldtable field_table
+touch  data_table
+cp $model_executable .
+cd $workdir/INPUT
+cp $bdtable . 
+tar xvf $gridSpec
+tar xvf $initCond
+tar xvf $CM2_input
+cd $workdir
+
+set irun = 1
+while ( $irun <= $num_executions )
+#--------------------------------------------------------------------------------------------------------
+# run the model with aprun
+mpirun -n $npes ./$model_executable:t
+if ($status != 0) then
+  echo "Error in execution of $cwd/$model_executable:t"
+  exit 1
+endif
+#--------------------------------------------------------------------------------------------------------
+set date_name = `$time_stamp -bf digital`
+foreach outfile (logfile.*.out diag_integral.out time_stamp.out)
+  mv $outfile $date_name.$outfile
+end
+#--------------------------------------------------------------------------------------------------------
+# combine distributed diagnostic files, remove the uncombined files, and add the time stamp to the file names
+date
+foreach ncfile (`/bin/ls *.nc.0000`)
+  $mppnccombine -64 -h 16384 -m $ncfile:r
+  if ($status == 0) then
+    rm -f $ncfile:r.[0-9][0-9][0-9][0-9]
+    mv $ncfile:r $date_name.$ncfile:r
+  else
+    echo "Error in execution of $mppnccombine while working on $ncfile:r"
+    exit 1
+  endif
+end
+date
+#--------------------------------------------------------------------------------------------------------
+# Add the time stamp to remaining diagnostic files (those not distributed)
+mv atmos_scalar.nc $date_name.atmos_scalar.nc
+mv ocean_scalar.nc $date_name.ocean_scalar.nc
+#--------------------------------------------------------------------------------------------------------
+cd $workdir/RESTART
+#--------------------------------------------------------------------------------------------------------
+# distributed iceberg restarts are combined with ncrcat
+ncrcat icebergs.res.nc.[0-9][0-9][0-9][0-9] icebergs.res.nc
+rm -f icebergs.res.nc.[0-9][0-9][0-9][0-9]
+date
+#--------------------------------------------------------------------------------------------------------
+# combine land restart files and remove the uncombined files
+foreach landname (cana glac lake land snow soil vegn1 vegn2)
+  foreach tilenum (1 2 3 4 5 6)
+    set distfiles=($landname.res.tile$tilenum.nc.[0-9][0-9][0-9][0-9])
+    $landnccombine $distfiles $landname.res.tile$tilenum.nc
+    if ($status == 0) then
+      rm -f $distfiles
+    else
+      echo "Error in execution of $landnccombine while working on $landname.res.tile$tilenum.nc"
+      exit 1
+    endif
+# Need to remove time index of restarts
+    ncwa -O -o $landname.res.tile$tilenum.nc -a Time $landname.res.tile$tilenum.nc
+  end
+end
+date
+#--------------------------------------------------------------------------------------------------------
+# combine remaining restart files and remove the uncombined files
+foreach ncfile (`/bin/ls *.nc.0000`)
+  $mppnccombine -64 -h 16384 -m $ncfile:r
+  if ($status == 0) then
+    rm -f $ncfile:r.[0-9][0-9][0-9][0-9]
+  else
+    echo "Error in execution of $mppnccombine while working on $ncfile:r"
+    exit 1
+  endif
+end
+date
+#--------------------------------------------------------------------------------------------------------
+# Interpolate diagnostic data to lat-lon grid
+cd $workdir
+set diagFiles = (`/bin/ls -1 $date_name.*.tile1.nc | grep -v grid_spec | grep -v horizontal_grid.tile`)
+set latlonfiles = ()
+cp $Root/fregrid/input/C180_mosaic.nc .
+cp $Root/fregrid/input/C180_grid.tile?.nc .
+foreach File ($diagFiles)
+  date
+  set variables = (`ncdump -h $File | grep 'grid_yt, grid_xt' | awk '{print $2}' | cut -d\( -f1`)
+  set variables = `echo $variables |sed 's/ /,/g'`
+  set basename = $File:r:r
+  mpirun -n 32 $fregrid --input_mosaic C180_mosaic.nc --input_file $basename --interp_method conserve_order1 \
+                                 --remap_file fregrid_remap_file --nlon 576 --nlat 360 --scalar_field $variables
+  if ($status != 0) then
+    echo "Error in execution of fregrid while working on $basename"
+    exit 1
+  endif
+  set latlonfiles = ($latlonfiles $basename.nc)
+end
+unset echo
+echo 'Fields interpolated to lat-lon grid exist in these files:'
+foreach File ($latlonfiles)
+  ls -l $cwd/$File
+end
+set echo
+#--------------------------------------------------------------------------------------------------------
+# Prepare to run the model again
+/bin/rm INPUT/*.res   INPUT/*.res.nc   INPUT/*.res.nc.[0-9][0-9][0-9][0-9]   INPUT/*.res.tile?.nc   INPUT/*.res.tile?.nc.[0-9][0-9][0-9][0-9]
+mv    RESTART/*.res RESTART/*.res.nc RESTART/*.res.nc.[0-9][0-9][0-9][0-9] RESTART/*.res.tile?.nc RESTART/*.res.tile?.nc.[0-9][0-9][0-9][0-9] INPUT
+#--------------------------------------------------------------------------------------------------------
+@ irun ++
+end
+echo 'run script successfully completed'
+exit 0

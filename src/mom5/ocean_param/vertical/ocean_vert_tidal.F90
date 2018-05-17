@@ -409,7 +409,7 @@ type(ocean_domain_type), pointer :: Dom => NULL()
 type(ocean_grid_type),   pointer :: Grd => NULL()
 
 character(len=128)  :: version='$$'
-character (len=128) :: tagname = '$Name: tikal_201409 $'
+character (len=128) :: tagname = '$Name: tikal $'
 
 public vert_mix_tidal 
 public ocean_vert_tidal_init
@@ -543,7 +543,7 @@ contains
 
     module_is_initialized = .TRUE.
 
-    call write_version_number( version, tagname )
+    call write_version_number(version, tagname)
 
 #ifdef INTERNAL_FILE_NML
 read (input_nml_file, nml=ocean_vert_tidal_nml, iostat=io_status)

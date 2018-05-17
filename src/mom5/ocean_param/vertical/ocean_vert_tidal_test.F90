@@ -1,5 +1,14 @@
 module ocean_vert_tidal_test_mod
 !
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> S. M. Griffies 
+!</CONTACT>
+!
+!<REVIEWER EMAIL="hsimmons@iarc.uaf.edu"> Harper Simmons 
+!</REVIEWER>
+!
+!<REVIEWER EMAIL="GFDL.Climate.Model.Info@noaa.gov"> Hyun-Chul Lee 
+!</REVIEWER>
+!
 !<OVERVIEW>
 ! This module computes a vertical diffusivity and vertical 
 ! viscosity deduced from barotropic and baroclinic tidal 
@@ -417,7 +426,7 @@ type(ocean_domain_type), pointer :: Dom => NULL()
 type(ocean_grid_type),   pointer :: Grd => NULL()
 
 character(len=128)  :: version='$$'
-character (len=128) :: tagname = '$Name: tikal_201409 $'
+character (len=128) :: tagname = '$Name: tikal $'
 
 public vert_mix_tidal_test
 public ocean_vert_tidal_test_init
@@ -552,7 +561,7 @@ contains
 
     module_is_initialized = .TRUE.
 
-    call write_version_number( version, tagname )
+    call write_version_number(version, tagname)
 
 #ifdef INTERNAL_FILE_NML
 read (input_nml_file, nml=ocean_vert_tidal_test_nml, iostat=io_status)

@@ -110,7 +110,7 @@ integer                             :: id_ah_biharmonic
 character(len=128) :: version=&
      '=>Using: /bih/ocean_bih_tracer.F90 ($Id: ocean_bih_tracer.F90,v 20.0 2013/12/14 00:14:10 fms Exp $)'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 type(ocean_grid_type), pointer   :: Grd => NULL()
 type(ocean_domain_type), pointer :: Dom => NULL()
@@ -170,7 +170,7 @@ subroutine ocean_bih_tracer_init(Grid, Domain, Time, T_prog, Ocean_options, dtim
 
   num_prog_tracers = size(T_prog(:))
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of defaults 
 #ifdef INTERNAL_FILE_NML

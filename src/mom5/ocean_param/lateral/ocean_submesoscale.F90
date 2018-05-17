@@ -352,7 +352,7 @@ type(ocean_grid_type),   pointer :: Grd => NULL()
 type(ocean_domain_type), save    :: Dom_flux_sub
 
 character(len=128)  :: version='$$'
-character (len=128) :: tagname = '$Name: tikal_201409 $'
+character (len=128) :: tagname = '$Name: tikal $'
 
 
 #ifdef MOM_STATIC_ARRAYS
@@ -586,7 +586,7 @@ contains
 
     module_is_initialized = .TRUE.
 
-    call write_version_number( version, tagname )
+    call write_version_number(version, tagname)
 
 #ifdef INTERNAL_FILE_NML
     read (input_nml_file, nml=ocean_submesoscale_nml, iostat=io_status)

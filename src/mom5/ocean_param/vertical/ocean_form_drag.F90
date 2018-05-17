@@ -260,7 +260,7 @@ integer :: id_surface_blayer_form_drag=-1
 character(len=128) :: version=&
        '$Id: ocean_form_drag.F90,v 20.0 2013/12/14 00:16:34 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 integer :: isd, ied, jsd, jed, isc, iec, jsc, jec, nk 
 
@@ -348,7 +348,7 @@ subroutine ocean_form_drag_init(Grid, Domain, Time, Time_steps, Ocean_options, d
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   call get_local_indices(Domain,isd,ied,jsd,jed,isc,iec,jsc,jec)
   nk = Grid%nk

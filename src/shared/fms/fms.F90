@@ -1,6 +1,10 @@
 
 module fms_mod
 
+! <CONTACT EMAIL="Bruce.Wyman@noaa.gov">
+!   Bruce Wyman
+! </CONTACT>
+
 ! <HISTORY SRC="http://www.gfdl.noaa.gov/fms-cgi-bin/cvsweb.cgi/FMS/"/>
 
 ! <OVERVIEW>
@@ -133,7 +137,8 @@ use       mpp_io_mod, only:  mpp_io_init, mpp_open, mpp_close,         &
                        MPP_SINGLE, MPP_MULTI, MPP_DELETE, mpp_io_exit, &
                        fieldtype, mpp_get_atts, mpp_get_info, mpp_get_fields
 
-use fms_io_mod, only : read_data, write_data, fms_io_init, fms_io_exit, field_size, &
+use fms_io_mod, only : fms_io_init, fms_io_exit, field_size, &
+                       read_data, write_data, read_compressed, read_distributed, &
                        open_namelist_file, open_restart_file, open_ieee32_file, close_file, &
                        set_domain, get_domain_decomp, nullify_domain, &
                        open_file, open_direct_file, string, get_mosaic_tile_grid, &
@@ -155,7 +160,7 @@ public :: open_namelist_file, open_restart_file, &
           open_file, open_direct_file
 
 ! routines for reading/writing distributed data
-public :: set_domain, read_data, write_data
+public :: set_domain, read_data, write_data, read_compressed, read_distributed
 public :: get_domain_decomp, field_size, nullify_domain
 public :: get_global_att_value
 
@@ -278,8 +283,8 @@ integer, public :: clock_flag_default
 
 !  ---- version number -----
 
-  character(len=128) :: version = '$Id: fms.F90,v 20.0 2013/12/14 00:20:05 fms Exp $'
-  character(len=128) :: tagname = '$Name: tikal_201409 $'
+  character(len=128) :: version = '$Id$'
+  character(len=128) :: tagname = '$Name$'
 
   logical :: module_is_initialized = .FALSE.
 

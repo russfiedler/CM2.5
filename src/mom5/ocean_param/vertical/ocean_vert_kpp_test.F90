@@ -495,7 +495,7 @@ integer :: num_diag_tracers=0, index_frazil
 character(len=256) :: version=&
      '$Id: ocean_vert_kpp_test.F90,v 20.0 2013/12/14 00:16:46 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 logical :: module_is_initialized = .FALSE.
 logical :: debug_this_module     = .FALSE.
@@ -571,7 +571,7 @@ subroutine ocean_vert_kpp_test_init (Grid, Domain, Time, Time_steps, Dens, T_pro
   inv_rho_cp = 1.0/rho_cp 
   horz_grid  = hor_grid
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of defaults 
 #ifdef INTERNAL_FILE_NML

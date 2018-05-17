@@ -214,7 +214,7 @@ module ocean_parameters_mod
   character(len=128) :: version = &
      '$Id: ocean_parameters.F90,v 20.0 2013/12/14 00:10:55 fms Exp $'
   character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
   namelist /ocean_parameters_nml/ cp_ocean, cp_liquid_runoff, cp_solid_runoff, &
                                   rho0, tfreeze, omega_earth, grav

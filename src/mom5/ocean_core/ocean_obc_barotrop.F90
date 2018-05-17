@@ -47,6 +47,7 @@ module ocean_obc_barotrop_mod
   use mpp_mod,                  only: CLOCK_MODULE
   use mpp_mod,                  only: mpp_clock_id, mpp_clock_begin, mpp_clock_end
   use mpp_mod,                  only: mpp_get_current_pelist, mpp_declare_pelist, mpp_sync_self
+  use mpp_mod,                  only: mpp_set_current_pelist
   use time_interp_external_mod, only: time_interp_external, init_external_field, get_external_field_size
   use time_manager_mod,         only: time_type
   use tracer_manager_mod,       only: get_tracer_names, get_tracer_indices, get_number_tracers
@@ -628,7 +629,7 @@ end interface
   integer              ::  i_sw, j_sw, i_nw, j_nw, i_se, j_se, i_ne, j_ne
 
   character(len=128)   :: version = '$ID$'
-  character (len=128)  :: tagname = '$Name: tikal_201409 $'
+  character (len=128)  :: tagname = '$Name: tikal $'
   logical              :: module_is_initialized = .FALSE.
   real, allocatable    :: wrk2(:)         ! needed for enhanced diffusion
   real, allocatable    :: wrk3(:)         ! needed for enhanced diffusion
@@ -1688,6 +1689,7 @@ contains
 
     do m = 1, nobc
        if (Obc%bound(m)%on_bound) then
+          call mpp_set_current_pelist(Obc%bound(m)%pelist)
 ! This part of the domain definition is the same for tracers and eta
           call mpp_set_compute_domain(obc_eta_domain(m),&
                                       Obc%bound(m)%isd, Obc%bound(m)%ied, &
@@ -1730,6 +1732,7 @@ contains
                   domain=obc_eta_domain(m),        &
 !                  desired_units='m', &
                   verbose=debug_this_module)
+
              fld_size(:)  = get_external_field_size(Obc%eta(m)%id)
              if(debug_this_module) write(obc_out_unit(m),*) 'fld_size for this PE',fld_size(:)
              if(fld_size(2) .ne. size(Obc%eta(m)%data,2)) then
@@ -1784,6 +1787,7 @@ contains
              write(obc_out_unit(m),*) '  no sea level relaxation'
           endif
        endif
+       call mpp_set_current_pelist(pelist)
     enddo
 
 

@@ -61,7 +61,7 @@ integer, dimension(2) :: domain_layout=(/1,1/)
 integer, dimension(2) :: io_domain_layout=(/0,0/)
 
 character(len=128) :: version='$Id: ocean_domains.F90,v 20.0 2013/12/14 00:10:42 fms Exp $'
-character(len=128) :: tagname='$Name: tikal_201409 $'
+character(len=128) :: tagname='$Name: tikal $'
 
 character(len=32) :: name_default = 'mom_domain'
 

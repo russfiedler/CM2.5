@@ -140,7 +140,7 @@ character(len=256) :: version=&
   '=>Using: ocean_bihcst_friction.f90 ($Id: ocean_bihcst_friction.F90,v 20.0 2013/12/14 00:14:14 fms Exp $)'
 
 character (len=128) :: tagname = &
-  '$Name: tikal_201409 $'
+  '$Name: tikal $'
 
 logical :: module_is_initialized = .FALSE.
 logical :: use_this_module       = .false.
@@ -192,7 +192,7 @@ subroutine ocean_bihcst_friction_init(Grid, Domain, Time, Ocean_options, d_time,
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of defaults 
 #ifdef INTERNAL_FILE_NML

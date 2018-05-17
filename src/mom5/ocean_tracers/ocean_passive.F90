@@ -185,7 +185,7 @@ type(ocean_grid_type), pointer   :: Grd =>NULL()
 character(len=128) :: version=&
        '$Id: ocean_passive.F90,v 20.0 2013/12/14 00:17:02 fms Exp $'
 character (len=128) :: tagname = &
-       '$Name: tikal_201409 $'
+       '$Name: tikal $'
 
 public ocean_passive_init
 public passive_tracer_init
@@ -433,7 +433,7 @@ subroutine ocean_passive_init(Domain, Grid, Ocean_options, debug)
   Dom => Domain
   Grd => Grid
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist override of defaults
 #ifdef INTERNAL_FILE_NML

@@ -1,6 +1,9 @@
 #include <fms_platform.h>
 
 MODULE diag_data_mod
+  ! <CONTACT EMAIL="seth.underwood@noaa.gov">
+  !   Seth Underwood
+  ! </CONTACT>
 
   ! <OVERVIEW>
   !   Type descriptions and global variables for the diag_manager modules.
@@ -43,7 +46,6 @@ MODULE diag_data_mod
 
   PUBLIC
 
-
   ! <!-- PARAMETERS for diag_data.F90 -->
   ! <DATA NAME="MAX_FIELDS_PER_FILE" TYPE="INTEGER, PARAMETER" DEFAULT="300">
   !   Maximum number of fields per file.
@@ -69,6 +71,9 @@ MODULE diag_data_mod
   ! <DATA NAME="GLO_REG_VAL_ALT" TYPE="INTEGER, PARAMETER" DEFAULT="-1">
   !   Alternate value used in the region specification of the diag_table to indicate to use the full axis instead of a sub-axis
   ! </DATA>
+  ! <DATA NAME="DIAG_FIELD_NOT_FOUND" TYPE="INTEGER, PARAMETER" DEFAULT="-1">
+  !   Return value for a diag_field that isn't found in the diag_table
+  ! </DATA>
   ! Specify storage limits for fixed size tables used for pointers, etc.
   INTEGER, PARAMETER :: MAX_FIELDS_PER_FILE = 300 !< Maximum number of fields per file.
   INTEGER, PARAMETER :: DIAG_OTHER = 0
@@ -84,6 +89,7 @@ MODULE diag_data_mod
   INTEGER, PARAMETER :: GLO_REG_VAL = -999
   INTEGER, PARAMETER :: GLO_REG_VAL_ALT = -1
   REAL, PARAMETER :: CMOR_MISSING_VALUE = 1.0e20 !< CMOR standard missing value
+  INTEGER, PARAMETER :: DIAG_FIELD_NOT_FOUND = -1
 
   ! <TYPE NAME="diag_grid">
   !   <DESCRIPTION>
@@ -485,13 +491,13 @@ MODULE diag_data_mod
      INTEGER  :: pack
      INTEGER :: pow_value !< Power value to use for mean_pow(n) calculations
      CHARACTER(len=50) :: time_method ! time method field from the input file
-     ! coordianes of the buffer and counter are (x, y, z, time-of-day)
+     ! coordinates of the buffer and counter are (x, y, z, time-of-day)
      REAL, _ALLOCATABLE, DIMENSION(:,:,:,:) :: buffer _NULL
      REAL, _ALLOCATABLE, DIMENSION(:,:,:,:) :: counter _NULL
      ! the following two counters are used in time-averaging for some
      ! combination of the field options. Their size is the length of the
      ! diurnal axis; the counters must be tracked separately for each of
-     ! the diurnal interval, becaus the number of time slices accumulated
+     ! the diurnal interval, because the number of time slices accumulated
      ! in each can be different, depending on time step and the number of
      ! diurnal samples.
      REAL, _ALLOCATABLE, DIMENSION(:)  :: count_0d
@@ -584,9 +590,9 @@ MODULE diag_data_mod
 
   ! Private CHARACTER Arrays for the CVS version and tagname.
   CHARACTER(len=128),PRIVATE  :: version =&
-       & '$Id: diag_data.F90,v 20.0.10.6 2014/08/26 18:16:12 sdu Exp $'
+       & '$Id$'
   CHARACTER(len=128),PRIVATE  :: tagname =&
-       & '$Name: tikal_201409 $'
+       & '$Name$'
 
   ! <!-- Other public variables -->
   ! <DATA NAME="num_files" TYPE="INTEGER" DEFAULT="0">
@@ -643,8 +649,10 @@ MODULE diag_data_mod
   ! <DATA NAME="max_file_attributes" TYPE="INTEGER" DEFAULT="2">
   !   Maximum number of user definable global attributes per file.
   ! </DATA>
-  ! <DATA NAME="prepend_date" TYPE="LOGICAL" DEFAULT=".FALSE.">
-  !   Indicates if the file start date will be prepended to the file name.  This was usually done by FRE after the model run.
+  ! <DATA NAME="prepend_date" TYPE="LOGICAL" DEFAULT=".TRUE.">
+  !   Indicates if the file start date will be prepended to the file name.  <TT>.TRUE.</TT> is
+  !   only supported if the diag_manager_init routine is called with the optional time_init parameter.
+  !   This was usually done by FRE after the model run.
   ! </DATA>
   ! <DATA NAME="region_out_use_alt_value" TYPE="LOGICAL" DEFAULT=".TRUE.">
   !   Will determine which value to use when checking a regional output if the region is the full axis or a sub-axis.
@@ -669,7 +677,7 @@ MODULE diag_data_mod
 
   INTEGER :: max_field_attributes = 2
   INTEGER :: max_file_attributes = 2
-  LOGICAL :: prepend_date = .FALSE.
+  LOGICAL :: prepend_date = .TRUE.
   ! <!-- netCDF variable -->
   ! <DATA NAME="FILL_VALUE" TYPE="REAL" DEFAULT="NF90_FILL_REAL">
   !   Fill value used.  Value will be <TT>NF90_FILL_REAL</TT> if using the
@@ -691,6 +699,10 @@ MODULE diag_data_mod
   REAL :: MAX_VALUE, MIN_VALUE
 
   ! <!-- Global data for all files -->
+  ! <DATA NAME="diag_init_time" TYPE="TYPE(time_type)">
+  !   Time diag_manager_init called.  If init_time not included in
+  !   diag_manager_init call, then same as base_time
+  ! </DATA>
   ! <DATA NAME="base_time" TYPE="TYPE(time_type)" />
   ! <DATA NAME="base_year" TYPE="INTEGER" />
   ! <DATA NAME="base_month" TYPE="INTEGER" />
@@ -699,6 +711,7 @@ MODULE diag_data_mod
   ! <DATA NAME="base_minute" TYPE="INTEGER" />
   ! <DATA NAME="base_second" TYPE="INTEGER" />
   ! <DATA NAME="global_descriptor" TYPE="CHARACTER(len=256)" />
+  TYPE(time_type) :: diag_init_time
   TYPE(time_type) :: base_time
   INTEGER :: base_year, base_month, base_day, base_hour, base_minute, base_second
   CHARACTER(len = 256):: global_descriptor

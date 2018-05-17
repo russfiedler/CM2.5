@@ -70,7 +70,7 @@ integer :: isd, ied, jsd, jed, isc, iec, jsc, jec, nk
 character(len=256) :: version=&
      '=>Using: const/ocean_vert_const.F90 ($Id: ocean_vert_const.F90,v 20.0 2013/12/14 00:16:38 fms Exp $)'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 integer :: index_temp
 integer :: index_salt
@@ -120,7 +120,7 @@ subroutine ocean_vert_const_init (Grid, Domain, Time, Time_steps, T_prog)
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of default values
 #ifdef INTERNAL_FILE_NML

@@ -129,7 +129,7 @@ type(ocean_domain_type), pointer :: Dom =>NULL()
 character(len=128) :: version=&
   '$Id: ocean_velocity_advect.F90,v 20.0 2013/12/14 00:12:43 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 integer :: advection_scheme           = 2
 logical :: module_is_initialized      = .false.
@@ -175,7 +175,7 @@ subroutine ocean_velocity_advect_init(Grid, Domain, Time, obc, hor_grid, debug)
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   Grd => Grid
   Dom => Domain
@@ -407,7 +407,7 @@ subroutine horz_advection_centered(Time, Thickness, Adv_vel, Velocity, energy_an
            do i=isc,iec
               metric_force = onefourth*( (Adv_vel%vhrho_nt(i,j,k)   + Adv_vel%vhrho_nt(i+1,j,k))  *wrk1_2d(i,j) &
                                         +(Adv_vel%vhrho_nt(i,j-1,k) + Adv_vel%vhrho_nt(i+1,j-1,k))*wrk1_2d(i,j-1) ) 
-              tmp(i,j) = (tmp1(i,j)-tmp1(i-1,j))*Grd%dxter(i,j) + (tmp2(i,j)-tmp2(i,j-1))*Grd%dytnr(i,j) &
+              tmp(i,j) = (tmp1(i,j)-tmp1(i-1,j))*Grd%dxter(i,j) + (tmp2(i,j)-tmp2(i,j-1))*Grd%dyter(i,j) &
                          + metric_force 
               wrk1_v(i,j,k,n) = Grd%tmasken(i,j,k,n)*tmp(i,j)
            enddo

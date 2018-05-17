@@ -1,4 +1,7 @@
 MODULE diag_axis_mod
+  ! <CONTACT EMAIL="seth.underwood@noaa.gov">
+  !   Seth Underwood
+  ! </CONTACT>
 
   ! <OVERVIEW> <TT>diag_axis_mod</TT> is an integral part
   !   of diag_manager_mod. It helps to create axis IDs
@@ -30,9 +33,9 @@ MODULE diag_axis_mod
   ! Module variables
   ! Parameters
   CHARACTER(len=128), PARAMETER :: version =&
-       & '$Id: diag_axis.F90,v 20.0.6.1 2014/07/29 17:57:20 sdu Exp $'
+       & '$Id$'
   CHARACTER(len=128), PARAMETER :: tagname =&
-       & '$Name: tikal_201409 $'
+       & '$Name$'
 
   ! counter of number of axes defined
   INTEGER, DIMENSION(:), ALLOCATABLE :: num_subaxes

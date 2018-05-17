@@ -228,7 +228,7 @@ logical :: prog_module_initialized = .false.
 logical :: diag_module_initialized = .false.
 
 character(len=256) :: version='CVS $Id: ocean_tracer.F90,v 20.0 2013/12/14 00:17:20 fms Exp $'
-character(len=256) :: tagname='Tag $Name: tikal_201409 $'
+character(len=256) :: tagname='Tag $Name: tikal $'
 character(len=48), parameter          :: mod_name = 'ocean_tracer_mod'
 
 integer :: num_tracers       =0

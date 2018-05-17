@@ -1,6 +1,9 @@
 #include <fms_platform.h>
 
 MODULE diag_util_mod
+  ! <CONTACT EMAIL="seth.underwood@noaa.gov">
+  !   Seth Underwood
+  ! </CONTACT>
   ! <HISTORY SRC="http://cobweb.gfdl.noaa.gov/fms-cgi-bin/viewcvs/FMS/shared/diag_manager/"/>
 
   ! <OVERVIEW>
@@ -31,7 +34,8 @@ MODULE diag_util_mod
        & max_input_fields,num_input_fields, max_output_fields, num_output_fields, coord_type,&
        & mix_snapshot_average_fields, global_descriptor, CMOR_MISSING_VALUE, use_cmor, pack_size,&
        & debug_diag_manager, conserve_water, output_field_type, max_field_attributes, max_file_attributes,&
-       & file_type, prepend_date, region_out_use_alt_value, GLO_REG_VAL, GLO_REG_VAL_ALT
+       & file_type, prepend_date, region_out_use_alt_value, GLO_REG_VAL, GLO_REG_VAL_ALT,&
+       & DIAG_FIELD_NOT_FOUND, diag_init_time
   USE diag_axis_mod, ONLY  : get_diag_axis_data, get_axis_global_length, get_diag_axis_cart,&
        & get_domain1d, get_domain2d, diag_subaxes_init, diag_axis_init, get_diag_axis, get_axis_aux,&
        & get_axes_shift, get_diag_axis_name, get_diag_axis_domain_name
@@ -106,9 +110,9 @@ MODULE diag_util_mod
   ! </INTERFACE>
 
   CHARACTER(len=128),PRIVATE  :: version =&
-       & '$Id: diag_util.F90,v 20.0.2.1.10.6.2.2 2014/08/29 19:53:22 sdu Exp $'
+       & '$Id$'
   CHARACTER(len=128),PRIVATE  :: tagname =&
-       & '$Name: tikal_201409 $'
+       & '$Name$'
 
 CONTAINS
 
@@ -1250,7 +1254,7 @@ CONTAINS
 
     INTEGER :: i
 
-    find_input_field = -1 ! Default return value if not found.
+    find_input_field = DIAG_FIELD_NOT_FOUND ! Default return value if not found.
     DO i = 1, num_input_fields
        IF(tile_count == input_fields(i)%tile_count .AND.&
             & TRIM(input_fields(i)%module_name) == TRIM(module_name) .AND.&
@@ -1635,7 +1639,7 @@ CONTAINS
     CHARACTER(len=128) :: suffix, base_name
     CHARACTER(len=32) :: time_name, timeb_name,time_longname, timeb_longname, cart_name
     CHARACTER(len=256) :: fname
-    CHARACTER(len=8) :: start_date
+    CHARACTER(len=24) :: start_date
     TYPE(domain1d) :: domain
     TYPE(domain2d) :: domain2
 
@@ -1693,10 +1697,10 @@ CONTAINS
 
     ! prepend the file start date if prepend_date == .TRUE.
     IF ( prepend_date ) THEN
-       call get_date(files(file)%start_time, year, month, day, hour, minute, second)
-       write (start_date, '(1I4.4, 2I2.2)') year, month, day
+       call get_date(diag_init_time, year, month, day, hour, minute, second)
+       write (start_date, '(1I20.4, 2I2.2)') year, month, day
 
-       filename = TRIM(start_date)//'.'//TRIM(filename)
+       filename = TRIM(adjustl(start_date))//'.'//TRIM(filename)
     END IF
 
     ! Loop through all fields with this file to output axes
@@ -2379,7 +2383,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(out), OPTIONAL :: err_msg
 
     INTEGER :: istat
-    
+
     ! Need to initialize err_msg if present
     IF ( PRESENT(err_msg) ) err_msg = ''
 

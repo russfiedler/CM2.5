@@ -93,7 +93,7 @@ integer, parameter                      :: default_mdt_scheme = 1
 !
 
 character(len=128) :: version = '$Id: ocean_tpm_util.F90,v 20.0 2013/12/14 00:17:18 fms Exp $'
-character(len=128) :: tagname = '$Name: tikal_201409 $'
+character(len=128) :: tagname = '$Name: tikal $'
 
 !
 !        Interface definitions for overloaded routines

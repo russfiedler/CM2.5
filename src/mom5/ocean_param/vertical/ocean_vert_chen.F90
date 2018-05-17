@@ -190,7 +190,7 @@ type(ocean_grid_type), pointer :: Grd =>NULL()
 character(len=256) :: version=&
      '$Id: ocean_vert_chen.F90,v 20.0 2013/12/14 00:16:36 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 logical :: module_is_initialized = .FALSE.
 logical :: use_this_module       = .false.
@@ -252,7 +252,7 @@ subroutine ocean_vert_chen_init (Grid, Domain, Time, Time_steps, T_prog, hor_gri
   endif 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of defaults 
 #ifdef INTERNAL_FILE_NML

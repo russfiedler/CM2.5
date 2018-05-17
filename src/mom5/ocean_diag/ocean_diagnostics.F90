@@ -1,5 +1,8 @@
 module ocean_diagnostics_mod
 !  
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> S.M. Griffies
+!</CONTACT>
+!
 !<OVERVIEW>
 ! Routine that calls the various numerical diagnostics.
 !</OVERVIEW>
@@ -47,7 +50,7 @@ logical :: module_is_initialized = .FALSE.
 character(len=128) :: version=&
      '$Id: ocean_diagnostics.F90,v 20.0 2013/12/14 00:12:51 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 public :: ocean_diag_init, ocean_diagnostics
 

@@ -77,7 +77,7 @@ type(ocean_grid_type), pointer     :: Grd =>NULL()
 character(len=128) :: &
      version='$Id: ocean_wave.F90,v 20.0 2013/12/14 00:17:26 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 real,parameter:: gtpi=grav/2.0/pi, epsln=1e-20 
 real,parameter:: sqrt_2 = sqrt(2.)
@@ -167,7 +167,7 @@ subroutine ocean_wave_init(Grid, Domain, Waves, Time, Time_steps, Ocean_options,
   
   call mpp_clock_begin(id_init)
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
   
 #ifdef INTERNAL_FILE_NML
   read (input_nml_file, ocean_wave_nml, iostat=io_status)

@@ -131,7 +131,7 @@ real, dimension(:,:,:), allocatable :: diffusivity_mask ! 3d mask to selectively
 character(len=128) :: version=&
      '$Id: ocean_lap_tracer.F90,v 20.0 2013/12/14 00:14:20 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 type(ocean_grid_type), pointer   :: Grd => NULL()
 type(ocean_domain_type), pointer :: Dom => NULL()
@@ -190,7 +190,7 @@ subroutine ocean_lap_tracer_init(Grid, Domain, Time, T_prog, Ocean_options, dtim
 
   num_prog_tracers = size(T_prog(:))
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of defaults 
 #ifdef INTERNAL_FILE_NML

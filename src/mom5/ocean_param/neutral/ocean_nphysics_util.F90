@@ -860,7 +860,7 @@ logical :: debug_this_module = .false.
 character(len=128) :: version=&
      '$Id: ocean_nphysics_util.F90,v 20.0 2013/12/14 00:14:52 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 character(len=*), parameter :: FILENAME=&
      __FILE__
@@ -938,7 +938,7 @@ subroutine ocean_nphysics_util_init(Grid, Domain, Time, Time_steps, Dens, T_prog
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   Dom => Domain
   Grd => Grid

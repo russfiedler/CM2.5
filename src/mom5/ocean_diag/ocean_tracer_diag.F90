@@ -1,5 +1,8 @@
 module ocean_tracer_diag_mod
 !  
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> S.M. Griffies 
+!</CONTACT>
+!
 !<OVERVIEW>
 ! Routines for tracer diagnostics 
 !</OVERVIEW>
@@ -30,10 +33,6 @@ module ocean_tracer_diag_mod
 !  </DATA> 
 !  <DATA NAME="debug_diagnose_mixingD" TYPE="logical">
 !  Set true for more help with debugging the diagnostic for mixing.
-!  Lots of output. 
-!  </DATA> 
-!  <DATA NAME="debug_mld_k" TYPE="logical">
-!  Set true to have mld_k=nk to help debug the mld budget diagnostics. 
 !  Lots of output. 
 !  </DATA> 
 !  <DATA NAME="smooth_kappa_sort" TYPE="integer">
@@ -117,7 +116,7 @@ use mpp_mod,               only: input_nml_file, mpp_error, mpp_max
 use mpp_mod,               only: mpp_clock_id, mpp_clock_begin, mpp_clock_end, CLOCK_ROUTINE
 use time_manager_mod,      only: time_type, increment_time
 
-use ocean_density_mod,     only: density_delta_sfc 
+use ocean_density_mod,     only: density_delta_sfc
 use ocean_domains_mod,     only: get_local_indices
 use ocean_obc_mod,         only: ocean_obc_tracer_flux, ocean_obc_mass_flux
 use ocean_operators_mod,   only: FAX, FAY, BAX, BAY, FMX, FMY, FDX_T, FDY_T, S2D
@@ -130,7 +129,7 @@ use ocean_types_mod,       only: ocean_prog_tracer_type, ocean_diag_tracer_type
 use ocean_types_mod,       only: ocean_external_mode_type, ocean_density_type, ocean_adv_vel_type
 use ocean_types_mod,       only: ocean_time_type, ocean_time_steps_type, ocean_thickness_type
 use ocean_types_mod,       only: ocean_lagrangian_type
-use ocean_util_mod,        only: write_timestamp, diagnose_2d, diagnose_3d
+use ocean_util_mod,        only: write_timestamp, diagnose_2d
 use ocean_tracer_util_mod, only: diagnose_3d_rho
 use ocean_workspace_mod,   only: wrk1, wrk2, wrk3, wrk4
 use ocean_workspace_mod,   only: wrk1_2d, wrk2_2d, wrk3_2d, wrk4_2d
@@ -185,7 +184,6 @@ integer :: id_tracer_integrals
 integer :: id_tracer_change
 integer :: id_tracer_land_cell_check
 
-
 type(ocean_grid_type), pointer   :: Grd =>NULL()
 type(ocean_domain_type), pointer :: Dom =>NULL()
 
@@ -193,9 +191,9 @@ logical :: module_is_initialized = .FALSE.
 integer :: tendency=0
 
 character(len=128) :: version=&
-     '$Id: ocean_tracer_diag.F90,v 20.0.8.4 2014/03/31 17:18:21 Stephen.Griffies Exp $'
+     '$Id: ocean_tracer_diag.F90,v 20.0 2013/12/14 00:12:55 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 ! for tracer conservation: need to know num_prog_tracers to allocate
 real, dimension(:,:,:), allocatable :: tracer_source
@@ -269,11 +267,6 @@ integer :: id_kappa_simple      =-1
 integer :: id_kappa_sort        =-1
 integer :: id_temp_sort         =-1
 
-! for mixed layer masking and k-level
-integer :: id_mld_k    =-1
-integer :: id_mld_mask =-1
-logical :: debug_mld_k = .false.
-
 ! frequency which compute certain ascii diagnostics 
 integer :: diag_step = -1
 
@@ -291,8 +284,6 @@ integer :: id_mld_nrho   =-1
 ! for subduction diagnostics 
 integer :: id_subduction           =-1
 integer :: id_subduction_mld       =-1
-integer :: id_subduction_mld_taup1 =-1
-integer :: id_subduction_hmld      =-1
 integer :: id_subduction_dhdt      =-1
 integer :: id_subduction_horz      =-1
 integer :: id_subduction_vert      =-1
@@ -357,7 +348,6 @@ logical :: smooth_mld_for_subduction=.true.
 public ocean_tracer_diag_init
 public ocean_tracer_diagnostics 
 public calc_mixed_layer_depth 
-public calc_mixed_layer_mask
 public calc_potrho_mixed_layer 
 public send_tracer_variance
 public diagnose_eta_tend_3dflux
@@ -396,8 +386,7 @@ namelist /ocean_tracer_diag_nml/ tracer_conserve_days , diag_step, psu2ppt,     
                                  debug_diagnose_mixingC, debug_diagnose_mixingD,     &
                                  smooth_kappa_sort, rho_grad_min, rho_grad_max,      &
                                  buoyancy_crit, do_bitwise_exact_sum, frazil_factor, &
-                                 smooth_mld, smooth_mld_for_subduction, dtheta_crit, &
-                                 debug_mld_k
+                                 smooth_mld, smooth_mld_for_subduction, dtheta_crit
 
 contains
 
@@ -539,7 +528,6 @@ ierr = check_nml_error(io_status,'ocean_tracer_diag_nml')
     id_global_variance(:) = -1
     id_k_variance(:)      = -1
 
-    ! for subduction diagnostics 
     allocate( id_subduction_tracer(num_prog_tracers) )
     allocate( id_subduction_dhdt_tracer(num_prog_tracers) )
     allocate( id_subduction_horz_tracer(num_prog_tracers) )
@@ -552,7 +540,7 @@ ierr = check_nml_error(io_status,'ocean_tracer_diag_nml')
     id_subduction_vert_tracer(:)    = -1
     id_subduction_mld_zflux_diff(:) = -1
     id_tracer_mld(:)                = -1 
-
+    
     do n=1,num_prog_tracers
 
        if(T_prog(n)%name == 'temp') then 
@@ -747,14 +735,6 @@ ierr = check_nml_error(io_status,'ocean_tracer_diag_nml')
              'neutral density at base of mixed layer depth',  'kg/m^3',&
              missing_value=missing_value, range=(/0.0,1.e6/))   
 
-    id_mld_k     = register_diag_field ('ocean_model','mld_k',Grd%tracer_axes(1:2),          &
-                   Time%model_time, 'number of k-levels needed to encompass the mixed layer',&
-                   'dimensionless', missing_value=missing_value, range=(/0.0,1e5/))
-
-    id_mld_mask  = register_diag_field ('ocean_model','mld_mask',Grd%tracer_axes(1:3),   &
-                   Time%model_time, 'mask for the mixed layer depth budget calculations',&
-                   'dimensionless', missing_value=missing_value, range=(/-1e1,1e1/))
-
     id_subduction = register_diag_field ('ocean_model', 'subduction', &
              Grd%tracer_axes(1:2), Time%model_time,                   &
              'rate of mass transferred below the mixed layer base',   &
@@ -766,18 +746,6 @@ ierr = check_nml_error(io_status,'ocean_tracer_diag_nml')
              'mixed layer depth used for subduction diagnostics',            &
              'm', missing_value=missing_value, range=(/-1.e2,1.e20/))
     if(id_subduction_mld > 0) compute_subduction_diags = .true.
-
-    id_subduction_mld_taup1 = register_diag_field ('ocean_model', 'subduction_mld_taup1',&
-             Grd%tracer_axes(1:2), Time%model_time,                                      &
-             'mixed layer depth used for subduction diagnostics at taup1',               &
-             'm', missing_value=missing_value, range=(/-1.e2,1.e20/))
-    if(id_subduction_mld_taup1 > 0) compute_subduction_diags = .true.
-
-    id_subduction_hmld = register_diag_field ('ocean_model', 'subduction_hmld',                   &
-             Grd%tracer_axes(1:2), Time%model_time,                                               &
-             'mixed layer depth for subduction diagnostics as diagnosed in calc_mixed_layer_mask',&
-             'm', missing_value=missing_value, range=(/-1.e2,1.e20/))
-    if(id_subduction_hmld > 0) compute_subduction_diags = .true.
 
     id_subduction_dhdt = register_diag_field ('ocean_model', 'subduction_dhdt',  &
              Grd%tracer_axes(1:2), Time%model_time,                              &
@@ -867,6 +835,15 @@ ierr = check_nml_error(io_status,'ocean_tracer_diag_nml')
     id_tracer_land_cell_check      = mpp_clock_id('(Ocean tracer_diag: land check)'        ,grain=CLOCK_ROUTINE)
 
 
+    ! compute tau value for Dens%mld_subduction 
+    call calc_mixed_layer_depth(Thickness,                                       &
+                                T_prog(index_salt)%field(isd:ied,jsd:jed,:,tau), &
+                                T_prog(index_temp)%field(isd:ied,jsd:jed,:,tau), &
+                                Dens%rho(isd:ied,jsd:jed,:,tau),                 &
+                                Dens%pressure_at_depth(isd:ied,jsd:jed,:),       &
+                                Dens%mld_subduction(:,:), smooth_mld_for_subduction) 
+
+
     end subroutine ocean_tracer_diag_init
 ! </SUBROUTINE>  NAME="ocean_tracer_diag_init"
 
@@ -938,7 +915,11 @@ subroutine ocean_tracer_diagnostics(Time, Thickness, T_prog, T_diag, Dens, &
   call mpp_clock_end(id_potrho_mixed_layer)
 
   call mpp_clock_begin(id_compute_subduction)
-  if(compute_subduction_diags) then 
+  if(     need_data(id_subduction,      next_time)      .or. need_data(id_subduction_dhdt, next_time)      &
+     .or. need_data(id_subduction_horz, next_time)      .or. need_data(id_subduction_vert, next_time)      &
+     .or. need_data(id_subduction_nrho, next_time)      .or. need_data(id_subduction_dhdt_nrho, next_time) &
+     .or. need_data(id_subduction_horz_nrho, next_time) .or. need_data(id_subduction_vert_nrho, next_time) &
+     .or. need_data(id_subduction_mld, next_time)       .or. compute_subduction_diags) then  
     call compute_subduction(Time, Thickness, Velocity, Adv_vel, Dens, T_prog, &
                             T_prog(index_salt)%field(isd:ied,jsd:jed,:,taup1),&
                             T_prog(index_temp)%field(isd:ied,jsd:jed,:,taup1),&
@@ -1162,87 +1143,6 @@ end subroutine calc_mixed_layer_depth
 
 
 !#######################################################################
-! <SUBROUTINE NAME="calc_mixed_layer_mask">
-!
-! <DESCRIPTION>
-!
-! This routine is called at the start of a time step, in order
-! to compute some diagnostic files required to do mld budgets.
-! 
-! Calculate the masking required to do the mld budgets.
-! Also compute the mld_subduction.  
-!            
-! </DESCRIPTION>
-!
-subroutine calc_mixed_layer_mask(Time, Thickness, Dens, theta)
-
-  type(ocean_time_type),        intent(in)    :: Time
-  type(ocean_thickness_type),   intent(in)    :: Thickness
-  type(ocean_density_type),     intent(inout) :: Dens
-  real, dimension(isd:,jsd:,:), intent(in)    :: theta
-
-  real,    dimension(isd:ied,jsd:jed) :: hmld
-  integer :: i, j, k, kb, tau
-  integer :: stdoutunit
-  stdoutunit=stdout()
-
-  if (.not.module_is_initialized) then 
-    call mpp_error(FATAL, &
-    '==>Error from ocean_tracer_diag_mod (calc_mixed_layer_mask): module needs initialization ')
-  endif 
-
-  tau = Time%tau 
-  hmld(:,:) = 0.0
-  call calc_mixed_layer_depth(Thickness, Dens%rho_salinity(:,:,:,tau), theta,     &
-                              Dens%rho(:,:,:,tau), Dens%pressure_at_depth(:,:,:), &
-                              hmld, smooth_mld_for_subduction)
-
-  ! fill halos to allow differencing mld_mask 
-  call mpp_update_domains(hmld(:,:), Dom%domain2d) 
-  do j=jsd,jed
-     do i=isd,ied
-        Dens%mld_subduction(i,j) = hmld(i,j)
-        Dens%mld_k(i,j) = 0
-        kb = Grd%kmt(i,j)
-        mld_k_loop: do k=1,kb
-           if(Thickness%depth_zwt(i,j,k) >= hmld(i,j)) then
-               Dens%mld_k(i,j) = k
-               exit mld_k_loop
-           endif
-        enddo mld_k_loop
-     enddo
-  enddo
-  call diagnose_2d(Time, Grd, id_subduction_hmld, Dens%mld_subduction(:,:))
-  
-  if(debug_mld_k) Dens%mld_k(:,:) = (nk-5)*Grd%tmask(:,:,1)
-
-  ! set the mld masking 
-  do k=1,nk
-     do j=jsd,jed
-        do i=isd,ied
-           Dens%mld_mask(i,j,k) = 0.0
-           if(k <= Dens%mld_k(i,j)) Dens%mld_mask(i,j,k) = Grd%tmask(i,j,k)
-        enddo
-     enddo
-  enddo   
-  call diagnose_3d(Time, Grd, id_mld_mask, Dens%mld_mask(:,:,:))
-
-  if (id_mld_k > 0) then 
-     wrk1_2d(:,:) = 0.0
-     do j=jsc,jec
-        do i=isc,iec
-           wrk1_2d(i,j) = float(Dens%mld_k(i,j))
-        enddo
-     enddo
-     call diagnose_2d(Time, Grd, id_mld_k, wrk1_2d(:,:))
-  endif
-
-
-end subroutine calc_mixed_layer_mask
-! </SUBROUTINE>  NAME="calc_mixed_layer_mask"
-
-
-!#######################################################################
 ! <SUBROUTINE NAME="mixed_layer_depth">
 !
 ! <DESCRIPTION>
@@ -1451,10 +1351,11 @@ subroutine compute_subduction(Time, Thickness, Velocity, Adv_vel, Dens, T_prog, 
                               mld_taup1(:,:),           &
                               smooth_mld_for_subduction)
 
-  ! Dens%mld_subduction is filled in calc_mixed_layer_mask at start of time step 
+  ! update Dens%mld_subduction 
   do j=jsc,jec
      do i=isc,iec
-        mld_tau(i,j) = Dens%mld_subduction(i,j) 
+        mld_tau(i,j)             = Dens%mld_subduction(i,j) 
+        Dens%mld_subduction(i,j) = mld_taup1(i,j) 
      enddo
   enddo
 
@@ -1588,7 +1489,6 @@ kloop:  do k=1,nk-1
   call diagnose_2d(Time, Grd, id_subduction_vert, subduction_vert(:,:))
   call diagnose_2d(Time, Grd, id_subduction, subduction(:,:))
   call diagnose_2d(Time, Grd, id_subduction_mld, mld_tau(:,:))
-  call diagnose_2d(Time, Grd, id_subduction_mld_taup1, mld_taup1(:,:))
 
   if(id_subduction_dhdt_nrho > 0) then
      wrk1(:,:,:)      = 0.0
@@ -2822,7 +2722,6 @@ subroutine tracer_land_cell_check (Time, T_prog)
      enddo
   enddo
 
-  call mpp_max(num)
   if (num > 0) call mpp_error(FATAL)
 
 9100  format(/' " =>Error: Land cell at (i,j,k) = ','(',i4,',',i4,',',i4,'),',&

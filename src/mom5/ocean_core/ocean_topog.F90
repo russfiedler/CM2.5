@@ -62,7 +62,7 @@ implicit none
 private
 
 character(len=256) :: version='CVS $Id: ocean_topog.F90,v 20.0 2013/12/14 00:12:35 fms Exp $'
-character(len=256) :: tagname='Tag $Name: tikal_201409 $'
+character(len=256) :: tagname='Tag $Name: tikal $'
 
 #include <ocean_memory.h>
 

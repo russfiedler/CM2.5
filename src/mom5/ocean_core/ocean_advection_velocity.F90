@@ -1,6 +1,8 @@
 module ocean_advection_velocity_mod
 #define COMP isc:iec,jsc:jec
 !  
+!<CONTACT EMAIL="Stephen.Griffies@noaa.gov"> S.M. Griffies
+!</CONTACT>
 !
 !<OVERVIEW>
 ! Advection velocity components for tracer and momenta transport, with 
@@ -224,9 +226,9 @@ private read_advection
 private inflow_nboundary_init
 
 character(len=128) :: version=&
-     '$Id: ocean_advection_velocity.F90,v 20.0.4.1.4.1 2014/03/19 20:58:42 Stephen.Griffies Exp $'
+     '$Id: ocean_advection_velocity.F90,v 20.0.4.1 2014/01/22 17:19:10 smg Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: mom5_tikal_22jan2014_smg $'
 
 logical :: have_obc                     = .false.
 logical :: module_is_initialized        = .FALSE.
@@ -290,7 +292,7 @@ subroutine ocean_advection_velocity_init(Grid, Domain, Time, Time_steps, Thickne
     '==>Error from ocean_advection_velocity_mod: module already initialized.')
   endif 
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   module_is_initialized = .TRUE.
 

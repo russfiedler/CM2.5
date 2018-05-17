@@ -1,12 +1,24 @@
 module field_manager_mod
 #ifndef MAXFIELDS_ 
-#define MAXFIELDS_ 150
+#define MAXFIELDS_ 250
 #endif
 
 #ifndef MAXFIELDMETHODS_
-#define MAXFIELDMETHODS_ 150
+#define MAXFIELDMETHODS_ 250
 #endif
 
+!
+! <CONTACT EMAIL="William.Cooke@noaa.gov"> William Cooke
+! </CONTACT>
+! 
+! <REVIEWER EMAIL="Richard.Slater@noaa.gov"> Richard D. Slater
+! </REVIEWER>
+!
+! <REVIEWER EMAIL="Matthew.Harrison@noaa.gov"> Matthew Harrison
+! </REVIEWER>
+!
+! <REVIEWER EMAIL="John.Dunne@noaa.gov"> John P. Dunne
+! </REVIEWER>
 !
 ! <HISTORY
 !  SRC="http://www.gfdl.noaa.gov/fms-cgi-bin/cvsweb.cgi/FMS/shared/field_manager/field_manager.F90"/>
@@ -170,8 +182,8 @@ implicit none
 private
 
 
-character(len=128) :: version = '$Id: field_manager.F90,v 20.0.2.1.2.2 2014/03/04 19:47:17 Seth.Underwood Exp $'
-character(len=128) :: tagname = '$Name: tikal_201409 $'
+character(len=128) :: version = '$Id$'
+character(len=128) :: tagname = '$Name$'
 logical            :: module_is_initialized  = .false.
 
 !+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

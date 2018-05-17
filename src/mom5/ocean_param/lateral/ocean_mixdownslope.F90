@@ -191,9 +191,9 @@ integer, dimension(:), allocatable :: id_mixdownslope
 
 
 character(len=128) :: version=&
-       '=>Using: ocean_mixdownslope.f90 ($Id: ocean_mixdownslope.F90,v 20.0.8.2 2014/05/19 01:22:20 smg Exp $)'
+       '=>Using: ocean_mixdownslope.f90 ($Id: ocean_mixdownslope.F90,v 20.0 2013/12/14 00:14:28 fms Exp $)'
 character (len=128) :: tagname=&
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 ! number of prognostic tracers
 integer :: num_prog_tracers=0
@@ -267,7 +267,7 @@ subroutine ocean_mixdownslope_init(Grid, Domain, Time, Dens, T_prog, Ocean_optio
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 #ifndef MOM_STATIC_ARRAYS
   call get_local_indices(Domain,isd,ied,jsd,jed,isc,iec,jsc,jec)
   nk = Grid%nk

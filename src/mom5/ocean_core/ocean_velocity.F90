@@ -1,6 +1,17 @@
 module ocean_velocity_mod
 #define COMP isc:iec,jsc:jec
 !
+! <CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov">
+! S.M. Griffies 
+! </CONTACT>
+!
+!<CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> A. Rosati
+!</CONTACT>
+!
+! <REVIEWER EMAIL="GFDL.Climate.Model.Info@noaa.gov">
+! M.J. Harrison 
+! </REVIEWER>
+!
 !<OVERVIEW>
 ! Time step the velocity field. 
 !</OVERVIEW>
@@ -181,7 +192,7 @@ use ocean_velocity_advect_mod, only: horz_advection_of_velocity, vert_advection_
 use ocean_velocity_diag_mod,   only: kinetic_energy, potential_energy 
 use ocean_vert_mix_mod,        only: vert_friction_bgrid, vert_friction_implicit_bgrid
 use ocean_vert_mix_mod,        only: vert_friction_cgrid, vert_friction_implicit_cgrid
-use ocean_workspace_mod,       only: wrk1, wrk2, wrk3, wrk1_v, wrk1_2d  
+use ocean_workspace_mod,       only: wrk1, wrk2, wrk3, wrk1_v  
 
 implicit none
 
@@ -195,8 +206,6 @@ integer :: id_ubott(2)          =-1
 integer :: id_speed             =-1
 integer :: id_accel(2)          =-1
 integer :: id_converge_rho_ud_t =-1
-integer :: id_ke_per_mass_surf  =-1
-integer :: id_ke_per_mass       =-1
 logical :: used
 
 ! for data over ride files
@@ -220,9 +229,9 @@ type(restart_file_type), save :: Cor_restart
 integer :: unit=6
 
 character(len=128) :: &
-     version='$Id: ocean_velocity.F90,v 20.0.8.1 2014/03/21 16:11:51 Stephen.Griffies Exp $'
+     version='$Id: ocean_velocity.F90,v 20.0 2013/12/14 00:12:41 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 logical :: have_obc = .false.
 
@@ -337,7 +346,7 @@ subroutine ocean_velocity_init (Grid, Domain, Time, Time_steps, Ocean_options, &
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   have_obc  = obc
   tendency  = Time_steps%tendency
@@ -437,12 +446,6 @@ subroutine ocean_velocity_init (Grid, Domain, Time, Time_steps, Ocean_options, &
   id_u(2)    = register_diag_field ('ocean_model', 'v', Grd%vel_axes_v(1:3), Time%model_time, &
      'j-current', 'm/sec', missing_value=missing_value, range=(/-10.0,10.0/),                 &
      standard_name='sea_water_y_velocity')
-
-  id_ke_per_mass_surf = register_diag_field ('ocean_model', 'ke_per_mass_surf', Grd%vel_axes_v(1:2), &
-      Time%model_time, 'kinetic energy per mass in the surface currents', 'm^2/s^2',                 &
-      missing_value=missing_value, range=(/-1e10,1e10/))
-  id_ke_per_mass = register_diag_field ('ocean_model', 'ke_per_mass', Grd%vel_axes_v(1:3), Time%model_time, &
-     'kinetic energy per mass', 'm^2/s^2', missing_value=missing_value, range=(/-1e10,1e10/))
 
   id_u_on_depth(1) = register_diag_field ('ocean_model', 'u_on_depth', Grd%vel_axes_u_depth(1:3), Time%model_time, &
      'i-current mapped to depth surface', 'm/sec', missing_value=missing_value, range=(/-10.0,10.0/))
@@ -1354,7 +1357,6 @@ subroutine update_ocean_velocity_bgrid(Time, Thickness, barotropic_split, &
   call diagnose_2d(Time, Grd, id_converge_rho_ud_t, Ext_mode%conv_rho_ud_t(:,:,tau))
 
   if(id_speed > 0) then 
-      wrk1(:,:,:) = 0.0
       do k=1,nk
          do j=jsd,jed
             do i=isd,ied
@@ -1363,27 +1365,6 @@ subroutine update_ocean_velocity_bgrid(Time, Thickness, barotropic_split, &
          enddo
       enddo
       call diagnose_3d_u(Time, Grd, id_speed, wrk1(:,:,:))
-  endif
-  if(id_ke_per_mass > 0) then 
-      wrk1(:,:,:) = 0.0
-      do k=1,nk
-         do j=jsd,jed
-            do i=isd,ied
-               wrk1(i,j,k) = 0.5*(Velocity%u(i,j,k,1,tau)**2 + Velocity%u(i,j,k,2,tau)**2)
-            enddo
-         enddo
-      enddo
-      call diagnose_3d_u(Time, Grd, id_ke_per_mass, wrk1(:,:,:))
-  endif
-  if(id_ke_per_mass_surf > 0) then 
-      wrk1_2d(:,:) = 0.0
-      k=1
-      do j=jsd,jed
-         do i=isd,ied
-            wrk1_2d(i,j) = 0.5*(Velocity%u(i,j,k,1,tau)**2 + Velocity%u(i,j,k,2,tau)**2)
-         enddo
-      enddo
-      call diagnose_2d_u(Time, Grd, id_ke_per_mass_surf, wrk1_2d(:,:))
   endif
 
   if(id_ubott(1) > 0 .or. id_ubott(2) > 0) then 
@@ -1852,6 +1833,7 @@ end subroutine ocean_velocity_chksum
 !
 ! Use rho_dzu weighting to account for nonBoussinesq.  
 !
+! Author: Stephen.Griffies
 !
 ! </DESCRIPTION>
 !

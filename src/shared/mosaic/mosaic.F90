@@ -1,5 +1,9 @@
 module mosaic_mod
 
+! <CONTACT EMAIL="Zhi.Liang@noaa.gov">
+!   Zhi Liang
+! </CONTACT>
+
 ! <HISTORY SRC="http://www.gfdl.noaa.gov/fms-cgi-bin/cvsweb.cgi/FMS/"/>
 
 ! <OVERVIEW>
@@ -14,7 +18,8 @@ module mosaic_mod
 ! </DESCRIPTION>
 
 use mpp_mod,    only : mpp_error, FATAL, mpp_pe, mpp_root_pe
-use fms_io_mod, only : dimension_size, field_exist, read_data
+use mpp_io_mod, only : MPP_MULTI
+use fms_io_mod, only : dimension_size, field_exist, read_data, read_compressed
 use constants_mod, only : PI, RADIUS
 
 implicit none
@@ -44,8 +49,8 @@ public :: is_inside_polygon
 
 logical :: module_is_initialized = .true.
 ! version information varaible
- character(len=128) :: version = '$Id: mosaic.F90,v 20.0.4.3.4.1 2014/09/05 17:38:28 Zhi.Liang Exp $'
- character(len=128) :: tagname = '$Name: tikal_201409 $'
+ character(len=128) :: version = '$Id$'
+ character(len=128) :: tagname = '$Name$'
 
 contains
 
@@ -123,35 +128,42 @@ end subroutine mosaic_init
 !   <INOUT NAME="area" TYPE="real, dimension(:)">
 !     area of the exchange grid. The area is scaled to represent unit earth area.
 !   </INOUT>
-  subroutine get_mosaic_xgrid(xgrid_file, i1, j1, i2, j2, area, di, dj, istart, iend)
+  subroutine get_mosaic_xgrid(xgrid_file, i1, j1, i2, j2, area, ibegin, iend)
     character(len=*), intent(in) :: xgrid_file
     integer,       intent(inout) :: i1(:), j1(:), i2(:), j2(:)
     real,          intent(inout) :: area(:)
-    real, optional,intent(inout) :: di(:), dj(:)
-    integer, optional,intent(in) :: istart, iend 
+    integer, optional, intent(in) :: ibegin, iend
 
+    integer                            :: start(4), nread(4), istart
     real,    dimension(2, size(i1(:))) :: tile1_cell, tile2_cell
-    real,    dimension(2, size(i1(:))) :: tile1_distance
-    integer                            :: start(4), nread(4)    
     integer                            :: nxgrid, n
     real                               :: garea
     real                               :: get_global_area;
 
-    nxgrid = size(i1(:))
-    start(:) = 1; nread(:) = 1
     garea = get_global_area();
 
-    call read_data(xgrid_file, 'xgrid_area', area, no_domain=.TRUE.)
-
-    start(1) = 1; nread(1) = 2
-    if(present(istart) .AND. present(iend)) then
-      start(2) = istart; nread(2) = iend - istart + 1
+    ! When start and nread present, make sure nread(1) is the same as the size of the data
+    if(present(ibegin) .and. present(iend)) then
+       istart = ibegin
+       nxgrid = iend - ibegin + 1
+       if(nxgrid .NE. size(i1(:))) call mpp_error(FATAL, "get_mosaic_xgrid: nxgrid .NE. size(i1(:))")
+       if(nxgrid .NE. size(j1(:))) call mpp_error(FATAL, "get_mosaic_xgrid: nxgrid .NE. size(j1(:))")
+       if(nxgrid .NE. size(i2(:))) call mpp_error(FATAL, "get_mosaic_xgrid: nxgrid .NE. size(i2(:))")
+       if(nxgrid .NE. size(j2(:))) call mpp_error(FATAL, "get_mosaic_xgrid: nxgrid .NE. size(j2(:))")
+       if(nxgrid .NE. size(area(:))) call mpp_error(FATAL, "get_mosaic_xgrid: nxgrid .NE. size(area(:))")
     else
-      start(2) = 1;  nread(2) = nxgrid
-    endif    
+       istart = 1
+       nxgrid = size(i1(:))
+    endif
 
-    call read_data(xgrid_file, 'tile1_cell', tile1_cell, start, nread, no_domain=.TRUE.)
-    call read_data(xgrid_file, 'tile2_cell', tile2_cell, start, nread, no_domain=.TRUE.)
+    start  = 1; nread = 1
+    start(1) = istart; nread(1) = nxgrid
+    call read_compressed(xgrid_file, 'xgrid_area', area, start=start, nread=nread, threading=MPP_MULTI)
+    start = 1; nread = 1
+    nread(1) = 2
+    start(2) = istart; nread(2) = nxgrid
+    call read_compressed(xgrid_file, 'tile1_cell', tile1_cell, start=start, nread=nread, threading=MPP_MULTI)
+    call read_compressed(xgrid_file, 'tile2_cell', tile2_cell, start=start, nread=nread, threading=MPP_MULTI)
 
      do n = 1, nxgrid
        i1(n) = tile1_cell(1,n) 
@@ -161,16 +173,6 @@ end subroutine mosaic_init
        area(n) = area(n)/garea
     end do
     
-    if(PRESENT(di)) then
-      if(.NOT. PRESENT(dj) ) call mpp_error(FATAL, "mosaic_mod: when di is present, dj should be present")
-      call read_data(xgrid_file, 'tile1_distance', tile1_distance, start, nread, no_domain=.TRUE.)
-      do n = 1, nxgrid
-         di(n) = tile1_distance(1,n)
-         dj(n) = tile1_distance(2,n)
-      enddo
-    endif
-
-
     return
 
   end subroutine get_mosaic_xgrid

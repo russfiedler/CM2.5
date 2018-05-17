@@ -96,7 +96,7 @@ integer :: id_rayleigh_drag_power=-1
 character(len=128) :: version=&
        '$Id: ocean_momentum_source.F90,v 20.0 2013/12/14 00:16:02 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 integer :: isd, ied, jsd, jed, isc, iec, jsc, jec, nk 
 
@@ -147,7 +147,7 @@ subroutine ocean_momentum_source_init(Grid, Domain, Time, Ocean_options, debug)
 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   call get_local_indices(Domain,isd,ied,jsd,jed,isc,iec,jsc,jec)
   nk = Grid%nk

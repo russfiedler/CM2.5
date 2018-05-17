@@ -340,7 +340,7 @@ logical :: compute_watermass_diag = .false.
 character(len=128) :: version=&
        '=>Using: ocean_overflow_OFP.f90 ($Id: ocean_overflow_OFP.F90,v 20.0 2013/12/14 00:16:08 fms Exp $)'
 character (len=128) :: tagname=&
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 ! number of prognostic tracers
 integer :: num_prog_tracers=0
@@ -528,7 +528,7 @@ id_OFP_n2_prd_depth    = register_diag_field ('ocean_model', 'OFP_n2_prd_depth',
 
     module_is_initialized = .TRUE.
 
-    call write_version_number( version, tagname )
+    call write_version_number(version, tagname)
 #ifndef MOM_STATIC_ARRAYS
     call get_local_indices(Domain,isd,ied,jsd,jed,isc,iec,jsc,jec)
     nk = Grid%nk

@@ -90,7 +90,7 @@ module ocean_nphysics_flux_mod
 character(len=128) :: version=&
      '$Id: ocean_nphysics_flux.F90,v 20.0 2013/12/14 00:14:44 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 character(len=*), parameter :: FILENAME=&
      __FILE__

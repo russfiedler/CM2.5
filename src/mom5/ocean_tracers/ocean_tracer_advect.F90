@@ -331,7 +331,7 @@ integer :: index_temp_sq=-1
 integer :: index_salt_sq=-1
 
 character(len=256) :: version='CVS $Id: ocean_tracer_advect.F90,v 20.0 2013/12/14 00:17:22 fms Exp $'
-character(len=256) :: tagname='Tag $Name: tikal_201409 $'
+character(len=256) :: tagname='Tag $Name: tikal $'
 
 
 type(ocean_domain_type), pointer :: Dom =>NULL()
@@ -524,7 +524,7 @@ subroutine ocean_tracer_advect_init (Grid, Domain, Time, Dens, T_prog, obc, debu
 
   have_obc = obc
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of defaults 
 #ifdef INTERNAL_FILE_NML

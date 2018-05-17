@@ -1,6 +1,9 @@
 #include <fms_platform.h>
 
 MODULE diag_grid_mod
+  ! <CONTACT EMAIL="seth.underwood@noaa.gov">
+  !   Seth Underwood
+  ! </CONTACT>
   ! <HISTORY SRC="http://www.gfdl.noaa.gov/fms-cgi-bin/cvsweb.cgi/FMS/" />
   ! <OVERVIEW>
   !   <TT>diag_grid_mod</TT> is a set of procedures to work with the
@@ -58,9 +61,9 @@ MODULE diag_grid_mod
 
   ! Parameters
   CHARACTER(len=128), PARAMETER :: version =&
-       & '$Id: diag_grid.F90,v 20.0.2.1.6.1 2014/07/29 17:57:20 sdu Exp $'
+       & '$Id$'
   CHARACTER(len=128), PARAMETER :: tagname =&
-       & '$Name: tikal_201409 $'
+       & '$Name$'
 
   ! Derived data types
   ! <PRIVATE>
@@ -340,7 +343,17 @@ CONTAINS
     diag_global_grid%dimJ = j_dim
     diag_global_grid%adimI = ai_dim
     diag_global_grid%adimJ = aj_dim
-    diag_global_grid%tile_number = tile(1)
+    !--- For the nested model, the nested region only has 1 tile ( ntiles = 1) but 
+    !--- the tile_id is 7 for the nested region. In the routine get_local_indexes,
+    !--- local variables ijMin and ijMax have dimesnion (ntiles) and will access
+    !--- ijMin(diag_global_grid%tile_number,:). For the nested region, ntiles = 1 and 
+    !--- diag_global_grid%tile_number = 7 will cause out of bounds. So need to
+    !--- set diag_global_grid%tile_number = 1 when ntiles = 1 for the nested model.
+    if(ntiles == 1) then
+       diag_global_grid%tile_number = 1
+    else
+       diag_global_grid%tile_number = tile(1)
+    endif
     diag_global_grid%ntiles = ntiles
     diag_global_grid%myXbegin = xbegin(myPe)
     diag_global_grid%myYbegin = ybegin(myPe)
@@ -544,7 +557,7 @@ CONTAINS
                 dists_lat(1) = ABS(diag_global_grid%glo_lat(i+1,j) - diag_global_grid%glo_lat(i,j))
                 count = count+1
              END IF
-             IF ( j < dimI ) THEN
+             IF ( j < dimJ ) THEN
                 dists_lon(2) = ABS(diag_global_grid%glo_lon(i,j+1) - diag_global_grid%glo_lon(i,j))
                 dists_lat(2) = ABS(diag_global_grid%glo_lat(i,j+1) - diag_global_grid%glo_lat(i,j))
                 count = count+1

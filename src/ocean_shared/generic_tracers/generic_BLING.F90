@@ -1,4 +1,18 @@
 !----------------------------------------------------------------
+! <CONTACT EMAIL="Eric.Galbraith@mcgill.ca"> Eric D. Galbraith
+! </CONTACT>
+!
+! <CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> John P. Dunne
+! </CONTACT>
+!
+! <CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> Anand Gnanandesikan
+! </CONTACT>
+!
+! <CONTACT EMAIL="GFDL.Climate.Model.Info@noaa.gov"> Niki Zadeh 
+! </CONTACT>
+! 
+! <REVIEWER EMAIL="GFDL.Climate.Model.Info@noaa.gov"> Rick Slater
+! </REVIEWER>
 !
 ! <OVERVIEW>
 !   This module contains the generic version of BLING.
@@ -119,7 +133,7 @@ module generic_BLING
   implicit none ; private
 
   character(len=128) :: version = '$Id: generic_BLING.F90,v 20.0 2013/12/14 00:18:02 fms Exp $'
-  character(len=128) :: tagname = '$Name: tikal_201409 $'
+  character(len=128) :: tagname = '$Name: tikal $'
 
   character(len=fm_string_len), parameter :: mod_name       = 'generic_BLING'
   character(len=fm_string_len), parameter :: package_name   = 'generic_bling'
@@ -592,7 +606,7 @@ write (stdlogunit, generic_bling_nml)
   subroutine generic_BLING_init(tracer_list)
     type(g_tracer_type), pointer :: tracer_list
 
-    call write_version_number( version, tagname )
+    call write_version_number(version, tagname)
 
     !Specify and initialize all parameters used by this package
     call user_add_params
@@ -3095,7 +3109,7 @@ write (stdlogunit, generic_bling_nml)
             grid_tmask(i,j,1)
        sc_no_term = sqrt(660.0 / (sc_o2 + epsln)) 
      
-       o2_alpha(i,j) = o2_saturation       * sc_no_term * bling%Rho_0
+       o2_alpha(i,j) = o2_saturation       * sc_no_term
        o2_csurf(i,j) = o2_field(i,j,1,tau) * sc_no_term * bling%Rho_0 !nnz: MOM has rho(i,j,1,tau)
 
     enddo; enddo

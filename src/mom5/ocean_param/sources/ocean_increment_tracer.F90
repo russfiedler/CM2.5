@@ -93,7 +93,7 @@ public ocean_increment_tracer_init
 public ocean_increment_tracer_source
 
 character(len=126)  :: version = '$Id: ocean_increment_tracer.F90,v 20.0 2013/12/14 00:15:58 fms Exp $'
-character (len=128) :: tagname = '$Name: tikal_201409 $'
+character (len=128) :: tagname = '$Name: tikal $'
 
 ! for diagnostics 
 logical :: used
@@ -154,7 +154,7 @@ subroutine ocean_increment_tracer_init(Grid, Domain, Time, T_prog)
 
   allocate( Increment(num_prog_tracers) )
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of default values
 #ifdef INTERNAL_FILE_NML

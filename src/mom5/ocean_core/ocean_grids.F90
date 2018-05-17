@@ -127,7 +127,7 @@ logical :: used
 character(len=128) :: version=&
      '$Id: ocean_grids.F90,v 20.0 2013/12/14 00:10:44 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 public ocean_grids_init
 public set_ocean_grid_size
@@ -201,7 +201,7 @@ subroutine ocean_grids_init(ver_coordinate, ver_coordinate_class, hor_grid, debu
   vert_coordinate_class = ver_coordinate_class
   horz_grid             = hor_grid  
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   if (PRESENT(debug)) debug_this_module = debug
 

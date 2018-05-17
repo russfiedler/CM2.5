@@ -254,7 +254,7 @@ type(restart_file_type), save :: Got_restart
 character(len=256) :: version=&
      '$Id: ocean_vert_gotm.F90,v 20.0 2013/12/14 00:16:40 fms Exp $'
 character (len=128) :: tagname = &
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 logical :: module_is_initialized = .FALSE.
 integer :: advection_gotm_method = 1  ! internally set: 1=upwind, 2=sweby 
@@ -333,7 +333,7 @@ subroutine ocean_vert_gotm_init (Grid, Domain, Time, Time_steps, T_prog, obc, de
   have_obc = obc 
   module_is_initialized = .TRUE.
 
-  call write_version_number( version, tagname )
+  call write_version_number(version, tagname)
 
   ! provide for namelist over-ride of defaults 
 #ifdef INTERNAL_FILE_NML

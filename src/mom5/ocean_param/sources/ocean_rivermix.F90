@@ -349,7 +349,7 @@ integer :: index_salt=-1
 character(len=128) :: version=&
        '$Id: ocean_rivermix.F90,v 20.0 2013/12/14 00:16:10 fms Exp $'
 character (len=128) :: tagname=&
-     '$Name: tikal_201409 $'
+     '$Name: tikal $'
 
 integer :: isd, ied, jsd, jed, isc, iec, jsc, jec, nk
 
@@ -401,7 +401,7 @@ contains
 
     module_is_initialized = .TRUE.
 
-    call write_version_number( version, tagname )
+    call write_version_number(version, tagname)
 
     call get_local_indices(Domain,isd,ied,jsd,jed,isc,iec,jsc,jec)
     nk = Grid%nk
