@@ -416,6 +416,7 @@ public  :: iceClocka,iceClockb,iceClockc
          Ice % sea_lev        (isd:ied, jsd:jed)       , &
          Ice % part_size      (isd:ied, jsd:jed, km)   , &
          Ice % part_size_uv   (isc:iec, jsc:jec, km)   , &
+         Ice % wnd            (isc:iec, jsc:jec, km)   , &
          Ice % u_surf         (isc:iec, jsc:jec, km)   , &
          Ice % v_surf         (isc:iec, jsc:jec, km)   , &
          Ice % u_ocn          (isd:ied, jsd:jed)       , &
@@ -490,6 +491,7 @@ public  :: iceClocka,iceClockb,iceClockc
     Ice % flux_v_top_bgrid=0.
     Ice % sea_lev         =0.
     Ice % part_size       =0.
+    Ice % wnd             =0.
     Ice % u_ocn           =0.
     Ice % v_ocn           =0.
     Ice % u_ice           =0.

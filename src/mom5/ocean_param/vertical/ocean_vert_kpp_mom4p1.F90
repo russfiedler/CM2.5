@@ -243,7 +243,7 @@ module ocean_vert_kpp_mom4p1_mod
 !
 !</NAMELIST>
 
-use constants_mod,    only: epsln
+use constants_mod,    only: epsln, pi
 use diag_manager_mod, only: register_diag_field, register_static_field
 use fms_mod,          only: FATAL, NOTE, WARNING, stdout, stdlog
 use fms_mod,          only: write_version_number, open_namelist_file, check_nml_error, close_file
@@ -280,7 +280,7 @@ private ri_for_kpp
 private watermass_diag_init
 private watermass_diag 
 
-private get_StokesSL_LiFoxKemper
+private get_langmuir_number
 private ust_2_u10_coare3p5
 
 #include <ocean_memory.h>
@@ -323,6 +323,7 @@ real, private, dimension(isd:ied,jsd:jed,nk)    :: ghats       ! nonlocal transp
 real, private, dimension(isd:ied,jsd:jed)       :: hblt        ! boundary layer depth with tmask 
 real, private, dimension(isd:ied,jsd:jed)       :: hbl         ! boundary layer depth
 
+real, dimension(isd:ied,jsd:jed)                :: langmuir_factor !  Enhancnement due to langmuir turbulence3
 #else
 
 real, dimension(:,:), allocatable      :: bfsfc    ! surface buoyancy forcing    (m^2/s^3)
@@ -361,6 +362,7 @@ real, private, dimension(:,:,:), allocatable :: ghats       ! nonlocal transport
 real, private, dimension(:,:),   allocatable :: hblt        ! boundary layer depth with tmask 
 real, private, dimension(:,:),   allocatable :: hbl         ! boundary layer depth
 
+real, private, dimension(:,:),   allocatable :: langmuir_factor !  Enhancnement due to langmuir turbulence3
 #endif
 
 type(wsfc_type), dimension(:), allocatable     :: wsfc
@@ -391,7 +393,7 @@ real :: vtc_flag = 0.0  ! default to the older approach.
 real :: Lgam = 1.04     ! adjustment to non-gradient flux (McWilliam & Sullivan 2000)
 real :: Cw_0 = 0.15     ! eq. (13) in Smyth et al (2002)
 real :: l_smyth = 2.0   ! eq. (13) in Smyth et al (2002)
-real :: LTmax = 5.0     ! maximum Langmuir turbulence enhancement factor (langmuirfactor) allowed
+real :: LTmax = 5.0     ! maximum Langmuir turbulence enhancement factor (langmuir_factor) allowed
 real :: Wstfac = 0.6    ! stability adjustment coefficient, eq. (13) in Smyth et al (2002)
 
 
@@ -443,6 +445,7 @@ integer  :: id_diff_cbt_kpp_t =-1
 integer  :: id_diff_cbt_kpp_s =-1
 integer  :: id_hblt           =-1
 integer  :: id_ws             =-1
+integer  :: id_lang_enh       =-1
 
 integer  :: id_neut_rho_kpp_nloc          =-1
 integer  :: id_wdian_rho_kpp_nloc         =-1
@@ -472,7 +475,7 @@ integer  :: id_tform_salt_kpp_nloc_on_nrho =-1
 logical :: non_local_kpp = .true.  ! enable/disable non-local term in KPP
 logical :: smooth_blmc   = .false. ! smooth boundary layer diffusitivies to remove grid scale noise
 logical :: do_langmuir   = .false. ! whether or not calcualte langmuir turbulence enhance factor
-logical :: do_langmuir_cvmix   = .false. ! whether or not calcualte langmuir turbulence enhance factor via cvmix method based on Li and Fox-Kemper
+logical :: do_langmuir_cvmix   = .false. ! whether or not calcualte langmuir turbulence enhance factor via cvmix method based on Van Roekel 2012
 logical :: calculate_u10 = .false. ! If 10m not available the estimate u10 from u_star
 
 integer, parameter :: nni = 890         ! number of values for zehat in the look up table
@@ -682,7 +685,7 @@ ierr = check_nml_error(io_status,'ocean_vert_kpp_mom4p1_nml')
     write(stdoutunit,'(1x,a)') '==> NOTE from ocean_vert_kpp_mom4p1_mod: Enhancing mixing via langmuir turbulence according to Smyth 2002.'
   endif
   if(do_langmuir .and. do_langmuir_cvmix) then
-    write(stdoutunit,'(1x,a)') '==> NOTE from ocean_vert_kpp_mom4p1_mod: Enhancing mixing via langmuir turbulence according to Li and Fox-Kemper.'
+    write(stdoutunit,'(1x,a)') '==> NOTE from ocean_vert_kpp_mom4p1_mod: Enhancing mixing via langmuir turbulence according to van Roekel 2012.'
   endif
 
   if( calculate_u10 ) then
@@ -776,6 +779,7 @@ ierr = check_nml_error(io_status,'ocean_vert_kpp_mom4p1_nml')
   allocate (dat1(isd:ied,jsd:jed,3))
   allocate(sw_frac_hbl(isd:ied,jsd:jed))
 
+  allocate (langmuir_factor(isd:ied,jsd:jed))
 #endif
 
   kbl(:,:)         = 0
@@ -918,6 +922,10 @@ ierr = check_nml_error(io_status,'ocean_vert_kpp_mom4p1_nml')
   id_ws = register_diag_field('ocean_model','wscale',Grd%tracer_axes(1:3), &
        Time%model_time, 'wscale from KPP', 'm',                            &
        missing_value = missing_value, range=(/-1.e5,1.e6/))
+
+  id_lang_enh = register_diag_field('ocean_model','lang_enh',Grd%tracer_axes(1:3), &
+       Time%model_time, 'enhancement due to langmuir turbulence', 'none',                            &
+       missing_value = missing_value, range=(/0.0,10./))
 
   call watermass_diag_init(Time,Dens)
 
@@ -1193,7 +1201,11 @@ subroutine vert_mix_kpp_mom4p1 (aidif, Time, Thickness, Velocity, T_prog, T_diag
 
 ! May need to estimate u_10 from ustar. Copy method from MOM6 RASF
       if ( calculate_u10 ) then
-         where(ustar > 0.0 ) call ust_2_u10_coare3p5(ustar*sqrt(rho0/1.225),Velocity%u_10)
+         where(ustar > 0.0 )
+            Velocity%u10 = ust_2_u10_coare3p5(ustar*sqrt(rho0/1.225))
+         elsewhere
+            Velocity%u10 = 0.0
+         end where
       endif
 
 !-----------------------------------------------------------------------
@@ -1237,6 +1249,7 @@ subroutine vert_mix_kpp_mom4p1 (aidif, Time, Thickness, Velocity, T_prog, T_diag
 
       call blmix_kpp(Thickness, Velocity, diff_cbt, visc_cbu, do_wave)
       call diagnose_3d(Time, Grd, id_ws, wrk1(:,:,:))
+      call diagnose_3d(Time, Grd, id_lang_enh, wrk2(:,:,:))
 
 !-----------------------------------------------------------------------
 !     enhance diffusivity at interface kbl - 1
@@ -2029,7 +2042,8 @@ subroutine wscale(iwscale_use_hbl_eq_zt, zt_kl, Velocity, do_wave)
   logical,                    intent(in) :: do_wave
 
   real                :: zdiff, udiff, zfrac, ufrac, fzfrac
-  real                :: wam, wbm, was, wbs, u3, langmuirfactor, Cw_smyth
+!  real                :: wam, wbm, was, wbs, u3, langmuir_factor, Cw_smyth, langmuir_number
+  real                :: wam, wbm, was, wbs, u3, Cw_smyth, langmuir_number
   real                :: zehat           ! = zeta *  ustar**3
   integer             :: iz, izp1, ju, jup1
   integer             :: i, j
@@ -2125,14 +2139,15 @@ subroutine wscale(iwscale_use_hbl_eq_zt, zt_kl, Velocity, do_wave)
 
 !----------- if do_wave, add Langmuir turbulence enhancement factor
 
-      if (do_wave .and. do_langmuir) then
+!RASF      if (do_wave .and. do_langmuir) then
+      if (do_wave .or. do_langmuir) then
          if ( do_langmuir_cvmix ) then
             do j=jsc,jec
                do i=isc,iec
-                  call get_StokesSL_LiFoxKemper(ustar(i,j), Velocity%u_10(i,j), hbl(i,j)), langmuir_number)
-                  langmuirfactor = sqrt(1.0 + 1./1.5**2/langmuir_number**2 + 1./(5.4**4)/langmuir_number**4)
-                  ws(i,j)=ws(i,j)*langmuirfactor
-                  wm(i,j)=wm(i,j)*langmuirfactor
+                  langmuir_number= get_langmuir_number(ustar(i,j), hbl(i,j), Velocity%u10(i,j))
+                  langmuir_factor(i,j) = min(sqrt(1.0 + 1./1.5**2/langmuir_number**2 + 1./(5.4**4)/langmuir_number**4),LTmax)
+                  ws(i,j)=ws(i,j)*langmuir_factor(i,j)
+                  wm(i,j)=wm(i,j)*langmuir_factor(i,j)
                enddo
             enddo
 
@@ -2141,11 +2156,11 @@ subroutine wscale(iwscale_use_hbl_eq_zt, zt_kl, Velocity, do_wave)
                do i=isc,iec
                   Cw_smyth=Cw_0*(ustar(i,j)*ustar(i,j)*ustar(i,j)/(ustar(i,j)*ustar(i,j)*ustar(i,j) &
                        + Wstfac*von_karman*bfsfc(i,j)*hbl(i,j) + epsln))**l_smyth
-                  langmuirfactor=sqrt(1+Cw_smyth*Ustk2(i,j)/(ustar(i,j)*ustar(i,j) + epsln))
-                  langmuirfactor = max(1.0, langmuirfactor)
-                  langmuirfactor = min(LTmax, langmuirfactor)
-                  ws(i,j)=ws(i,j)*langmuirfactor
-                  wm(i,j)=wm(i,j)*langmuirfactor
+                  langmuir_factor(i,j)=sqrt(1+Cw_smyth*Ustk2(i,j)/(ustar(i,j)*ustar(i,j) + epsln))
+                  langmuir_factor(i,j) = max(1.0, langmuir_factor(i,j))
+                  langmuir_factor(i,j) = min(LTmax, langmuir_factor(i,j))
+                  ws(i,j)=ws(i,j)*langmuir_factor(i,j)
+                  wm(i,j)=wm(i,j)*langmuir_factor(i,j)
                enddo
             enddo
          endif
@@ -2537,6 +2552,8 @@ subroutine blmix_kpp(Thickness, Velocity, diff_cbt, visc_cbu, do_wave)
       enddo
 
       blmc(:,:,:,:) = 0.0
+      wrk1 = 0.0
+      wrk2 = 0.0
 
       do ki=1,kbl_max !results are needed only for ki<kbl, hence, limiting this loops saves a lot of wscale calls
 
@@ -2563,6 +2580,7 @@ subroutine blmix_kpp(Thickness, Velocity, diff_cbt, visc_cbu, do_wave)
 !-----------------------------------------------------------------------
 
         if (id_ws > 0) wrk1(:,:,ki) =  ws(:,:)
+        if (id_lang_enh > 0) wrk2(:,:,ki) =  langmuir_factor(:,:)
           
         do j=jsc,jec
           do i = isc,iec
@@ -2595,7 +2613,7 @@ subroutine blmix_kpp(Thickness, Velocity, diff_cbt, visc_cbu, do_wave)
 !             by a factor of Lgam (McWilliam & Sullivan 2001)
 !             Do not do this if using cvmix version
 !-----------------------------------------------------------------------
-              if (do_wave .and. do_langmuir .and. .not. do_langmuir_cvmix) then
+              if ((do_wave .or. do_langmuir) .and. .not. do_langmuir_cvmix) then
                  ghats(i,j,ki) = Lgam * (1.-stable(i,j)) * cg    &
                         / (ws(i,j) * hbl(i,j) + epsln)
               else
@@ -2845,11 +2863,8 @@ end subroutine ri_for_kpp
 
 !#######################################################################
 !
-elemental subroutine ust_2_u10_coare3p5(USTair,U10)
-!  real, dimension(:,:), intent(in) :: USTair
-!  real, dimension(:,:), intent(out) :: U10
+elemental real function ust_2_u10_coare3p5(USTair) result(u10)
   real, intent(in) :: USTair
-  real, intent(out) :: U10
   real, parameter :: nu=1e-6
   real :: z0sm, z0, z0rough, u10a, alpha, CD
   integer :: CT
@@ -2858,7 +2873,8 @@ elemental subroutine ust_2_u10_coare3p5(USTair,U10)
   !  COARE 3.5 paper (Edson et al., 2013)
   !alpha=m*U10+b
   !Note in Edson et al. 2013, eq. 13 m is given as 0.017.  However,
-  ! m=0.0017 reproduces the curve in their figure 6.
+  ! m=0.0017 reproduces the curve in their figure 6. Later acknowleged in
+  ! correction. RASF
 
    z0sm = 0.11 * nu / USTair !Compute z0smooth from ustar guess
    u10 = USTair/sqrt(0.001)  !Guess for u10
@@ -2884,31 +2900,29 @@ elemental subroutine ust_2_u10_coare3p5(USTair,U10)
          exit
       endif
    enddo
-end subroutine ust_2_u10_coare3p5
+end function ust_2_u10_coare3p5
 
 
-subroutine get_StokesSL_LiFoxKemper(ustar, hbl, u10, LA)
+real function get_langmuir_number(ustr, hbl, u10) result(LA)
 ! Original description:
-! This function returns the enhancement factor, given the 10-meter
+! This function returns the Langmuir number, given the 10-meter
 ! wind (m/s), friction velocity (m/s) and the boundary layer depth (m).
 ! Update (Jan/25):
-! Converted from function to subroutine, now returns Langmuir number.
 !
 ! Qing Li, 160606
 ! BGR port from CVMix to MOM6 Jan/25/2017
-! BGR change output to LA from Efactor
 ! Modified from MOM6 for MOM5 RASF 2018
 
 ! Input
   real, intent(in) :: &
        ! water-side surface friction velocity (m/s)
-       ustar, &
+       ustr, &
        ! boundary layer depth (m)
        hbl, &
        ! 10m winds (m/s)
        u10
 !  real, intent(out) :: US_SL, LA
-  real, intent(out) :: LA
+!  real, intent(out) :: LA
 ! Local variables
   ! parameters
   real, parameter :: &
@@ -2921,12 +2935,11 @@ subroutine get_StokesSL_LiFoxKemper(ustar, hbl, u10, LA)
        us_to_u10 = 0.0162, &
        ! loss ratio of Stokes transport
        r_loss = 0.667
-  real :: us, hm0, fm, fp, vstokes, kphil, kstar
+  real :: us, us_sl, hm0, fm, fp, vstokes, kphil, kstar
   real :: z0, z0i, r1, r2, r3, r4, tmp, lasl_sqr_i
-  real :: u10
 
 
-  if (ustar .gt. 0.0) then
+  if (ustr > 0.0 .and. u10 > 0.0) then
     ! surface Stokes drift
     us = us_to_u10*u10
     !
@@ -2957,7 +2970,8 @@ subroutine get_StokesSL_LiFoxKemper(ustar, hbl, u10, LA)
     ! is also included
     kstar = kphil * 2.56
     ! surface layer
-    z0 = abs(hbl)
+!RASF Dodgy as anything here. cvmix uses 0.2 but MOM6 looks like it uses 0.04 
+    z0 = 0.2*abs(hbl)
     z0i = 1.0 / z0
     ! term 1 to 4
     r1 = ( 0.151 / kphil * z0i -0.84 ) &
@@ -2971,13 +2985,13 @@ subroutine get_StokesSL_LiFoxKemper(ustar, hbl, u10, LA)
          *sqrt( 2.0 * PI *kstar * z0) &
          *erfc( sqrt( 2.0 * kstar * z0 ) )
     us_sl = us * (0.715 + r1 + r2 + r3 + r4)
-    LA = sqrt(ustar/us_sl)
+    LA = sqrt(ustr/us_sl)
   else
     us_sl = 0.0
     LA=1.e8
   endif
 
-endsubroutine Get_StokesSL_LiFoxKemper
+end function get_langmuir_number
 
 !#######################################################################
 ! <SUBROUTINE NAME="watermass_diag_init">
