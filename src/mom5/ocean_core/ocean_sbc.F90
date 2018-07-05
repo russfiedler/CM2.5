@@ -3029,9 +3029,12 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
           do i = isc_bnd,iec_bnd
              ii = i + i_shift
              jj = j + j_shift
-             Velocity%ustoke(ii,jj) = Ice_ocean_boundary%ustoke(i,j)
-             Velocity%vstoke(ii,jj) = Ice_ocean_boundary%vstoke(i,j)
-             Velocity%wavlen(ii,jj)= Ice_ocean_boundary%wavlen(i,j)
+! until full wave model is implemented Ice_ocean_boundary%ustoke etc not associated 
+             if(associated(Ice_ocean_boundary%ustoke)) then
+                Velocity%ustoke(ii,jj) = Ice_ocean_boundary%ustoke(i,j) 
+                Velocity%vstoke(ii,jj) = Ice_ocean_boundary%vstoke(i,j)
+                Velocity%wavlen(ii,jj)= Ice_ocean_boundary%wavlen(i,j)
+             endif
              Velocity%u10(ii,jj)= Ice_ocean_boundary%wnd(i,j)*Grd%tmask(ii,jj,1) !RASF 10m winds passin ACCESS, Wombat. c.f. MOM6 approach ustar to u10. T-GRID!
           enddo
        enddo

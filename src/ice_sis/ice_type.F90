@@ -254,7 +254,8 @@ public  :: iceClocka,iceClockb,iceClockc
                                                                         ! because flux_ice_to_ocean cannot handle 3D fields. This may be
 									! removed, if the information on ice thickness can be derived from 
 									! eventually from h_ice outside the ice module.
-     real,    pointer, dimension(:,:,:) :: wnd                 =>NULL() ! need 10m wind speed to deduce Stokes drift etc in QL_KF_17
+!     real,    pointer, dimension(:,:) :: wnd                 =>NULL() ! need 10m wind speed to deduce Stokes drift etc in QL_KF_17 Should only be 2D why 3D RASF
+     real,    pointer, dimension(:,:,:) :: wnd                 =>NULL() ! need 10m wind speed to deduce Stokes drift etc in QL_KF_17. 3D for flux exchange. Not sure why.
      logical, pointer, dimension(:,:)   :: maskmap             =>NULL() ! A pointer to an array indicating which
                                                                         ! logical processors are actually used for
                                                                         ! the ocean code. The other logical

@@ -1787,7 +1787,7 @@ subroutine sfc_boundary_layer ( dt, Time, Atm, Land, Ice, Land_Ice_Atmos_Boundar
 #endif
 
 ! place the wind value onto the ice data type.  mac
-  call get_from_xgrid (Ice%wnd, 'OCN', ex_wind, xmap_sfc)
+  call get_from_xgrid (Ice%wnd, 'OCN', ex_u10, xmap_sfc)
 
   !=======================================================================
   ! [7] diagnostics section
@@ -2781,6 +2781,7 @@ subroutine flux_ice_to_ocean ( Time, Ice, Ocean, Ice_Ocean_Boundary )
 !                                         runoff_ocean,  calving_ocean, &
 !                                         flux_salt_ocean, p_surf_ocean
   type(ice_ocean_boundary_type), intent(inout) :: Ice_Ocean_Boundary
+  real, dimension(:,:), pointer                :: dummy_null_pointer => NULL() !  RASF hack to get around pointer association.
 
   integer       :: m
   integer       :: n
@@ -2856,8 +2857,17 @@ subroutine flux_ice_to_ocean ( Time, Ice, Ocean, Ice_Ocean_Boundary )
   if(ASSOCIATED(Ice_Ocean_Boundary%q_flux) ) call flux_ice_to_ocean_redistribute( Ice, Ocean, &
       Ice%flux_q, Ice_Ocean_Boundary%q_flux, Ice_Ocean_Boundary%xtype, do_area_weighted_flux )
 
-  if(ASSOCIATED(Ice_Ocean_Boundary%wnd) ) call flux_ice_to_ocean_redistribute( Ice, Ocean, &
-      Ice%wnd(:,:,1), Ice_Ocean_Boundary%wnd, Ice_Ocean_Boundary%xtype, do_area_weighted_flux )
+  if(ASSOCIATED(Ice_Ocean_Boundary%wnd) ) then
+     if(ASSOCIATED(Ice%wnd)) then
+        call flux_ice_to_ocean_redistribute( Ice, Ocean, &
+           Ice%wnd(:,:,1), Ice_Ocean_Boundary%wnd, Ice_Ocean_Boundary%xtype, do_area_weighted_flux )
+     else
+        call flux_ice_to_ocean_redistribute( Ice, Ocean, &
+          dummy_null_pointer, Ice_Ocean_Boundary%wnd, Ice_Ocean_Boundary%xtype, do_area_weighted_flux ) !Put dummy array here.
+     endif
+  endif
+!  if(ASSOCIATED(Ice_Ocean_Boundary%wnd) ) call flux_ice_to_ocean_redistribute( Ice, Ocean, &
+!      Ice%wnd(:,:,1), Ice_Ocean_Boundary%wnd, Ice_Ocean_Boundary%xtype, do_area_weighted_flux )
 
 !Balaji: moved data_override calls here from coupler_main
   if( ocn_pe )then

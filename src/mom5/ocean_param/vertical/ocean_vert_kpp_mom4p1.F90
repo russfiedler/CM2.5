@@ -260,6 +260,7 @@ use ocean_types_mod,       only: ocean_prog_tracer_type, ocean_diag_tracer_type
 use ocean_types_mod,       only: ocean_velocity_type, ocean_density_type
 use ocean_types_mod,       only: ocean_time_type, ocean_time_steps_type, ocean_thickness_type
 use ocean_workspace_mod,   only: wrk1, wrk2, wrk3, wrk4, wrk5
+use ocean_workspace_mod,   only: wrk1_2d, wrk2_2d
 use ocean_util_mod,        only: diagnose_2d, diagnose_3d, diagnose_sum
 use ocean_tracer_util_mod, only: diagnose_3d_rho
 
@@ -323,7 +324,8 @@ real, private, dimension(isd:ied,jsd:jed,nk)    :: ghats       ! nonlocal transp
 real, private, dimension(isd:ied,jsd:jed)       :: hblt        ! boundary layer depth with tmask 
 real, private, dimension(isd:ied,jsd:jed)       :: hbl         ! boundary layer depth
 
-real, dimension(isd:ied,jsd:jed)                :: langmuir_factor !  Enhancnement due to langmuir turbulence3
+real, dimension(isd:ied,jsd:jed)                :: langmuir_factor !  Enhancnement due to langmuir turbulence
+real, dimension(isd:ied,jsd:jed)                :: langmuir_number !  Langmuir number
 #else
 
 real, dimension(:,:), allocatable      :: bfsfc    ! surface buoyancy forcing    (m^2/s^3)
@@ -363,6 +365,7 @@ real, private, dimension(:,:),   allocatable :: hblt        ! boundary layer dep
 real, private, dimension(:,:),   allocatable :: hbl         ! boundary layer depth
 
 real, private, dimension(:,:),   allocatable :: langmuir_factor !  Enhancnement due to langmuir turbulence3
+real, private, dimension(:,:),   allocatable :: langmuir_number !  Langmuir number
 #endif
 
 type(wsfc_type), dimension(:), allocatable     :: wsfc
@@ -446,6 +449,8 @@ integer  :: id_diff_cbt_kpp_s =-1
 integer  :: id_hblt           =-1
 integer  :: id_ws             =-1
 integer  :: id_lang_enh       =-1
+integer  :: id_lang           =-1
+integer  :: id_u10           =-1
 
 integer  :: id_neut_rho_kpp_nloc          =-1
 integer  :: id_wdian_rho_kpp_nloc         =-1
@@ -780,6 +785,7 @@ ierr = check_nml_error(io_status,'ocean_vert_kpp_mom4p1_nml')
   allocate(sw_frac_hbl(isd:ied,jsd:jed))
 
   allocate (langmuir_factor(isd:ied,jsd:jed))
+  allocate (langmuir_number(isd:ied,jsd:jed))
 #endif
 
   kbl(:,:)         = 0
@@ -923,9 +929,17 @@ ierr = check_nml_error(io_status,'ocean_vert_kpp_mom4p1_nml')
        Time%model_time, 'wscale from KPP', 'm',                            &
        missing_value = missing_value, range=(/-1.e5,1.e6/))
 
-  id_lang_enh = register_diag_field('ocean_model','lang_enh',Grd%tracer_axes(1:3), &
+  id_lang_enh = register_diag_field('ocean_model','lang_enh',Grd%tracer_axes(1:2), &
        Time%model_time, 'enhancement due to langmuir turbulence', 'none',                            &
        missing_value = missing_value, range=(/0.0,10./))
+
+  id_lang = register_diag_field('ocean_model','lang_num',Grd%tracer_axes(1:2), &
+       Time%model_time, 'Langmuir number', 'none',                            &
+       missing_value = missing_value, range=(/0.0,1.E10/))
+
+  id_u10 = register_diag_field('ocean_model','u10',Grd%tracer_axes(1:2), &
+       Time%model_time, '10m wind speed used for kpp Langmuir turbulence', 'm/s',                            &
+       missing_value = missing_value, range=(/0.0,1.e3/))
 
   call watermass_diag_init(Time,Dens)
 
@@ -1207,6 +1221,7 @@ subroutine vert_mix_kpp_mom4p1 (aidif, Time, Thickness, Velocity, T_prog, T_diag
             Velocity%u10 = 0.0
          end where
       endif
+      if(id_u10 > 0) call diagnose_2d(Time, Grd, id_u10, Velocity%u10(:,:))
 
 !-----------------------------------------------------------------------
 !     compute interior mixing coefficients everywhere, due to constant 
@@ -1249,7 +1264,8 @@ subroutine vert_mix_kpp_mom4p1 (aidif, Time, Thickness, Velocity, T_prog, T_diag
 
       call blmix_kpp(Thickness, Velocity, diff_cbt, visc_cbu, do_wave)
       call diagnose_3d(Time, Grd, id_ws, wrk1(:,:,:))
-      call diagnose_3d(Time, Grd, id_lang_enh, wrk2(:,:,:))
+      call diagnose_2d(Time, Grd, id_lang_enh, wrk1_2d(:,:))
+      call diagnose_2d(Time, Grd, id_lang, wrk2_2d(:,:))
 
 !-----------------------------------------------------------------------
 !     enhance diffusivity at interface kbl - 1
@@ -2043,7 +2059,8 @@ subroutine wscale(iwscale_use_hbl_eq_zt, zt_kl, Velocity, do_wave)
 
   real                :: zdiff, udiff, zfrac, ufrac, fzfrac
 !  real                :: wam, wbm, was, wbs, u3, langmuir_factor, Cw_smyth, langmuir_number
-  real                :: wam, wbm, was, wbs, u3, Cw_smyth, langmuir_number
+!  real                :: wam, wbm, was, wbs, u3, Cw_smyth, langmuir_number
+  real                :: wam, wbm, was, wbs, u3, Cw_smyth
   real                :: zehat           ! = zeta *  ustar**3
   integer             :: iz, izp1, ju, jup1
   integer             :: i, j
@@ -2144,8 +2161,8 @@ subroutine wscale(iwscale_use_hbl_eq_zt, zt_kl, Velocity, do_wave)
          if ( do_langmuir_cvmix ) then
             do j=jsc,jec
                do i=isc,iec
-                  langmuir_number= get_langmuir_number(ustar(i,j), hbl(i,j), Velocity%u10(i,j))
-                  langmuir_factor(i,j) = min(sqrt(1.0 + 1./1.5**2/langmuir_number**2 + 1./(5.4**4)/langmuir_number**4),LTmax)
+                  langmuir_number(i,j)= get_langmuir_number(ustar(i,j), hbl(i,j), Velocity%u10(i,j))
+                  langmuir_factor(i,j) = min(sqrt(1.0 + 1./1.5**2/langmuir_number(i,j)**2 + 1./(5.4**4)/langmuir_number(i,j)**4),LTmax)
                   ws(i,j)=ws(i,j)*langmuir_factor(i,j)
                   wm(i,j)=wm(i,j)*langmuir_factor(i,j)
                enddo
@@ -2553,7 +2570,8 @@ subroutine blmix_kpp(Thickness, Velocity, diff_cbt, visc_cbu, do_wave)
 
       blmc(:,:,:,:) = 0.0
       wrk1 = 0.0
-      wrk2 = 0.0
+      wrk1_2d = 1.0
+      wrk2_2d = 0.0
 
       do ki=1,kbl_max !results are needed only for ki<kbl, hence, limiting this loops saves a lot of wscale calls
 
@@ -2580,7 +2598,10 @@ subroutine blmix_kpp(Thickness, Velocity, diff_cbt, visc_cbu, do_wave)
 !-----------------------------------------------------------------------
 
         if (id_ws > 0) wrk1(:,:,ki) =  ws(:,:)
-        if (id_lang_enh > 0) wrk2(:,:,ki) =  langmuir_factor(:,:)
+        if(ki == 1) then
+           if (id_lang_enh > 0) wrk1_2d =  langmuir_factor
+           if (id_lang > 0) wrk2_2d =  langmuir_number
+        endif
           
         do j=jsc,jec
           do i = isc,iec
